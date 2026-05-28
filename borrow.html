@@ -11,14 +11,21 @@
         .container { max-width: 630px; margin: 0 auto; }
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        
         .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
+        /* 💡 縦並び用のボタンレイアウト */
+        .block-btn { width: 100%; padding: 12px; margin-top: 8px; font-size: 0.95rem; display: block; box-sizing: border-box; }
+        /* 💡 ログアウトボタン用（オレンジ系） */
+        .logout-btn { background: #ff5722; color: white; margin-top: 15px; }
+        .logout-btn:hover { background: #e64a19; }
+
         .profile-section { display: flex; flex-direction: column; gap: 4px; }
         .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
 
-        /* 💡 1つの大きな蛇腹（アコーディオン）メニューのスタイル */
+        /* 1つの大きな蛇腹（アコーディオン）メニューのスタイル */
         .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
         .accordion-trigger { background: #252525; padding: 12px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
         .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
@@ -27,7 +34,7 @@
         .accordion-content { background: #0f0f0f; overflow: hidden; transition: max-height 0.2s ease-out; }
         
         /* 蛇腹の中のレイアウト構造 */
-        .accordion-inner { padding: 18px; display: flex; flex-direction: column; gap: 15px; }
+        .accordion-inner { padding: 18px; display: flex; flex-direction: column; gap: 20px; }
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
@@ -48,13 +55,13 @@
         <p id="user-info">ユーザー情報を読み込み中...</p>
     </div>
 
-    <h2>貸出・返却（タップしてください）</h2>
+    <h2>貸出・返却</h2>
     <div class="grid" id="ipad-grid"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -102,7 +109,7 @@
                         </div>
                     `;
                 } else {
-                    // 💡 名前変更とUIDを1つのメニューにまとめて、最初から確実に閉じさせます（max-height: 0px）
+                    // 💡 ボタンをボックスの下に配置し、最下部にログアウトを追加
                     idInputHTML = `
                         <div class="info-row">🔑 学籍番号: <strong>${myStudentId}</strong> <span style="font-size:0.75rem; color:#888;">(※変更不可)</span></div>
                         
@@ -113,15 +120,18 @@
                                     
                                     <div>
                                         <div class="sub-section-title">👤 本名・表示名の変更</div>
-                                        <div class="input-group" style="margin-top:10px;">
-                                            <input type="text" id="custom-name-input" value="${nameInputVal}">
-                                            <button id="update-name-btn">変更</button>
-                                        </div>
+                                        <input type="text" id="custom-name-input" value="${nameInputVal}" style="width:100%; margin-top:10px; box-sizing:border-box;">
+                                        <button id="update-name-btn" class="block-btn">✨ 名前の変更を保存する</button>
                                     </div>
 
-                                    <div style="margin-top:5px;">
+                                    <div>
                                         <div class="sub-section-title">⚙️ 管理者問い合わせ用ID</div>
                                         <div class="uid-text">${user.uid}</div>
+                                    </div>
+
+                                    <div>
+                                        <div class="sub-section-title">🚪 認証セッション</div>
+                                        <button id="logout-btn" class="block-btn logout-btn">🚪 システムからログアウト</button>
                                     </div>
 
                                 </div>
@@ -139,6 +149,7 @@
 
                 document.getElementById('save-profile-btn')?.addEventListener('click', saveNewStudentId);
                 document.getElementById('update-name-btn')?.addEventListener('click', updateCustomName);
+                document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
                     initDynamicIpadGrid();
@@ -179,8 +190,21 @@
         try {
             await setDoc(doc(db, "users", auth.currentUser.uid), { customName: newName }, { merge: true });
             alert("表示名を変更しました。");
-            window.toggleAccordion('profile-accordion'); // 成功したら自動でパッと閉じる
+            window.toggleAccordion('profile-accordion');
         } catch(e) { alert("名前の変更に失敗しました。"); }
+    }
+
+    // 💡 新設：ログアウト処理
+    async function handleLogout() {
+        if (!confirm("システムからログアウトしますか？")) return;
+        try {
+            await signOut(auth);
+            alert("ログアウトしました。ログイン画面に戻ります。");
+            // 履歴を上書きして完全に接続を打ち切る安全なリダイレクト
+            window.location.replace("./login.html");
+        } catch(e) {
+            alert("ログアウトに失敗しました。");
+        }
     }
 
     function initDynamicIpadGrid() {
