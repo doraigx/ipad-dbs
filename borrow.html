@@ -13,19 +13,12 @@
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
         .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
+        input:disabled { background: #1a1a1a; color: #777; border-color: #333; cursor: not-allowed; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
         .profile-section { display: flex; flex-direction: column; gap: 12px; }
         .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
-
-        /* 💡 新設：蛇腹（アコーディオン）メニューのスタイル */
-        .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
-        .accordion-trigger { background: #252525; padding: 10px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
-        .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
-        .accordion-trigger::after { content: '▼'; font-size: 0.7rem; transition: transform 0.2s; }
-        .accordion-item.open .accordion-trigger::after { transform: rotate(180deg); }
-        .accordion-content { background: #0f0f0f; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; }
-        .uid-text { padding: 12px 15px; font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; }
+        .uid-text { font-size: 0.75rem; color: #666; background: #0f0f0f; padding: 4px 8px; border-radius: 4px; word-break: break-all; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
         .ipad-tile { height: 110px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
@@ -71,13 +64,14 @@
     let myStudentId = "";
     let myCustomName = "";
 
-    // 🔒 認証状態監視
+    // 🔒 認証状態監視 & 画面の構築
     onAuthStateChanged(auth, async (user) => {
         const authSection = document.getElementById('auth-section');
         if (!user) {
             authSection.innerHTML = `<p style="text-align:center;"><button id="login-btn">Googleログインして利用開始</button></p>`;
             document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
         } else {
+            // クラウドからユーザープロファイルをリアルタイム監視
             onSnapshot(doc(db, "users", user.uid), (docSnap) => {
                 let idInputHTML = "";
                 let nameInputVal = user.displayName;
@@ -89,6 +83,7 @@
                     nameInputVal = myCustomName;
                 }
 
+                // 💡 学籍番号が未登録なら入力欄を表示、登録済みなら完全ロック（変更不可）
                 if (!myStudentId) {
                     idInputHTML = `
                         <div class="info-row">⚠️ 学籍番号が登録されていません：</div>
@@ -108,45 +103,27 @@
                     `;
                 }
 
-                // 💡 蛇腹メニュー構造を取り入れたプロファイルエリアのHTML
                 authSection.innerHTML = `
                     <div class="profile-section">
                         <div class="info-row" style="font-size:1.1rem;">👋 こんにちは、<strong>${nameInputVal}</strong> さん</div>
                         ${idInputHTML}
-                        
-                        <div class="accordion-item" id="uid-accordion">
-                            <div class="accordion-trigger" onclick="window.toggleUidAccordion()">⚙️ 管理者問い合わせ用IDを表示</div>
-                            <div class="accordion-content">
-                                <div class="uid-text">${user.uid}</div>
-                            </div>
-                        </div>
+                        <div class="info-row" style="margin-top:10px; color:#555;">管理者への問い合わせ用マイUID:</div>
+                        <div class="uid-text">${user.uid}</div>
                     </div>
                 `;
 
+                // 登録・変更ボタンのイベントリスナーを毎回バインド
                 document.getElementById('save-profile-btn')?.addEventListener('click', saveNewStudentId);
                 document.getElementById('update-name-btn')?.addEventListener('click', updateCustomName);
                 
                 if (myStudentId) {
-                    initDynamicIpadGrid();
+                    initDynamicIpadGrid(); // 学籍番号が確定していればグリッド起動
                 }
             });
         }
     });
 
-    // 💡 新設：蛇腹メニューの開閉アニメーション制御
-    window.toggleUidAccordion = function() {
-        const accordion = document.getElementById('uid-accordion');
-        const content = accordion.querySelector('.accordion-content');
-        
-        if (accordion.classList.contains('open')) {
-            accordion.classList.remove('open');
-            content.style.maxHeight = '0px';
-        } else {
-            accordion.classList.add('open');
-            content.style.maxHeight = content.scrollHeight + 'px'; // 中身の高さに合わせて動的に広げる
-        }
-    };
-
+    // 【初回のみ】学籍番号を保存する処理
     async function saveNewStudentId() {
         const idInput = document.getElementById('student-id-input').value.trim();
         if (!idInput) return alert("学籍番号を入力してください");
@@ -159,6 +136,7 @@
         } catch(e) { alert("登録に失敗しました。"); }
     }
 
+    // 【いつでも可能】本名・表示名を変更する処理
     async function updateCustomName() {
         const newName = document.getElementById('custom-name-input').value.trim();
         if (!newName) return alert("名前を空欄にすることはできません。");
@@ -168,6 +146,7 @@
         } catch(e) { alert("名前の変更に失敗しました。"); }
     }
 
+    // 📊 動的タイル生成
     function initDynamicIpadGrid() {
         const grid = document.getElementById('ipad-grid');
         onSnapshot(collection(db, "ipads"), (snapshot) => {
@@ -176,4 +155,57 @@
                 const id = docSnap.id;
                 const data = docSnap.data();
                 const modelName = data.model || "iPad";
-                const tile = document.
+                const tile = document.createElement('div');
+                tile.id = `ipad-${id}`;
+                
+                if (data.status === "borrowed") {
+                    tile.className = "ipad-tile borrowed";
+                    tile.innerHTML = `
+                        No.${id}
+                        <div class="tile-model">${modelName}</div>
+                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🔄 返却する" : "🔴 貸出中"}</div>
+                    `;
+                    if (data.borrowedBy === myStudentId) {
+                        tile.onclick = () => handleReturn(id);
+                    }
+                } else {
+                    tile.className = "ipad-tile available";
+                    tile.innerHTML = `
+                        No.${id}
+                        <div class="tile-model">${modelName}</div>
+                        <div class="tile-info">🟢 借用可能</div>
+                    `;
+                    tile.onclick = () => handleBorrow(id, modelName);
+                }
+                grid.appendChild(tile);
+            });
+        });
+    }
+
+    // 貸出
+    async function handleBorrow(id, model) {
+        if (!myStudentId) return;
+        if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
+        try {
+            await setDoc(doc(db, "ipads", String(id)), {
+                status: "borrowed",
+                borrowedBy: myStudentId,
+                borrowedAt: new Date()
+            }, { merge: true });
+        } catch (e) { alert("貸出に失敗しました。"); }
+    }
+
+    // 返却
+    async function handleReturn(id) {
+        if (!confirm(`No.${id} を返却しますか？`)) return;
+        try {
+            await setDoc(doc(db, "ipads", String(id)), {
+                status: "available",
+                borrowedBy: "",
+                returnedAt: new Date()
+            }, { merge: true });
+        } catch (e) { alert("返却に失敗しました。"); }
+    }
+</script>
+</body>
+</html>
