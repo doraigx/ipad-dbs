@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPad貸出システム - 利用者</title>
@@ -11,13 +8,18 @@
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { max-width: 630px; margin: 0 auto; }
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
-        .input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
+        input:disabled { background: #1a1a1a; color: #777; border-color: #333; cursor: not-allowed; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
+        .profile-section { display: flex; flex-direction: column; gap: 12px; }
+        .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
+        .uid-text { font-size: 0.75rem; color: #666; background: #0f0f0f; padding: 4px 8px; border-radius: 4px; word-break: break-all; }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
         .ipad-tile { height: 110px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
@@ -32,14 +34,7 @@
     <h1>📱 iPad 貸出ステーション</h1>
 
     <div class="card" id="auth-section">
-        <p id="user-info">読み込み中...</p>
-        <div id="student-id-area" style="display: none;">
-            <label>学籍番号を登録してください:</label>
-            <div class="input-group">
-                <input type="text" id="student-id-input" placeholder="例: B260000">
-                <button id="save-id-btn">登録</button>
-            </div>
-        </div>
+        <p id="user-info">ユーザー情報を読み込み中...</p>
     </div>
 
     <h2>貸出・返却（タップしてください）</h2>
@@ -51,7 +46,6 @@
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 🔑 新しい専用データベースの設定を適用
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
         authDomain: "ipad-database-2c20b.firebaseapp.com",
@@ -68,49 +62,99 @@
     const provider = new GoogleAuthProvider();
 
     let myStudentId = "";
+    let myCustomName = "";
 
-    // 🔒 認証状態監視
+    // 🔒 認証状態監視 & 画面の構築
     onAuthStateChanged(auth, async (user) => {
+        const authSection = document.getElementById('auth-section');
         if (!user) {
-            document.getElementById('user-info').innerHTML = `<button id="login-btn">Googleログインして利用開始</button>`;
+            authSection.innerHTML = `<p style="text-align:center;"><button id="login-btn">Googleログインして利用開始</button></p>`;
             document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
         } else {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists() && userDoc.data().studentId) {
-                myStudentId = userDoc.data().studentId;
-                document.getElementById('auth-section').innerHTML = `👤 ログイン中: <strong>${user.displayName}</strong> (${myStudentId})`;
-                initDynamicIpadGrid(); 
-            } else {
-                document.getElementById('user-info').textContent = `👤 ログイン中: ${user.displayName}`;
-                document.getElementById('student-id-area').style.display = "block";
-            }
+            // クラウドからユーザープロファイルをリアルタイム監視
+            onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                let idInputHTML = "";
+                let nameInputVal = user.displayName;
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    myStudentId = data.studentId || "";
+                    myCustomName = data.customName || user.displayName;
+                    nameInputVal = myCustomName;
+                }
+
+                // 💡 学籍番号が未登録なら入力欄を表示、登録済みなら完全ロック（変更不可）
+                if (!myStudentId) {
+                    idInputHTML = `
+                        <div class="info-row">⚠️ 学籍番号が登録されていません：</div>
+                        <div class="input-group">
+                            <input type="text" id="student-id-input" placeholder="例: B260000">
+                            <button id="save-profile-btn">登録確定</button>
+                        </div>
+                    `;
+                } else {
+                    idInputHTML = `
+                        <div class="info-row">🔑 学籍番号: <strong>${myStudentId}</strong> <span style="font-size:0.75rem; color:#888;">(※変更は管理者に問い合わせてください)</span></div>
+                        <div class="info-row" style="margin-top:15px;">👤 本名・表示名 (自由に変更できます):</div>
+                        <div class="input-group">
+                            <input type="text" id="custom-name-input" value="${nameInputVal}">
+                            <button id="update-name-btn">名前を変更</button>
+                        </div>
+                    `;
+                }
+
+                authSection.innerHTML = `
+                    <div class="profile-section">
+                        <div class="info-row" style="font-size:1.1rem;">👋 こんにちは、<strong>${nameInputVal}</strong> さん</div>
+                        ${idInputHTML}
+                        <div class="info-row" style="margin-top:10px; color:#555;">管理者への問い合わせ用マイUID:</div>
+                        <div class="uid-text">${user.uid}</div>
+                    </div>
+                `;
+
+                // 登録・変更ボタンのイベントリスナーを毎回バインド
+                document.getElementById('save-profile-btn')?.addEventListener('click', saveNewStudentId);
+                document.getElementById('update-name-btn')?.addEventListener('click', updateCustomName);
+                
+                if (myStudentId) {
+                    initDynamicIpadGrid(); // 学籍番号が確定していればグリッド起動
+                }
+            });
         }
     });
 
-    // 学籍番号登録
-    document.getElementById('save-id-btn')?.addEventListener('click', async () => {
+    // 【初回のみ】学籍番号を保存する処理
+    async function saveNewStudentId() {
         const idInput = document.getElementById('student-id-input').value.trim();
         if (!idInput) return alert("学籍番号を入力してください");
-        
         try {
-            await setDoc(doc(db, "users", auth.currentUser.uid), { studentId: idInput }, { merge: true });
-            alert("学籍番号を紐付けました。");
-            window.location.reload();
+            await setDoc(doc(db, "users", auth.currentUser.uid), { 
+                studentId: idInput,
+                customName: auth.currentUser.displayName 
+            }, { merge: true });
+            alert("学籍番号を紐付けました！");
         } catch(e) { alert("登録に失敗しました。"); }
-    });
+    }
 
-    // 📊 管理者の追加・削除に完全リアルタイム連動する動的タイル生成
+    // 【いつでも可能】本名・表示名を変更する処理
+    async function updateCustomName() {
+        const newName = document.getElementById('custom-name-input').value.trim();
+        if (!newName) return alert("名前を空欄にすることはできません。");
+        try {
+            await setDoc(doc(db, "users", auth.currentUser.uid), { customName: newName }, { merge: true });
+            alert("表示名を変更しました。");
+        } catch(e) { alert("名前の変更に失敗しました。"); }
+    }
+
+    // 📊 動的タイル生成
     function initDynamicIpadGrid() {
         const grid = document.getElementById('ipad-grid');
-        
         onSnapshot(collection(db, "ipads"), (snapshot) => {
-            grid.innerHTML = ""; // 画面をリセット
-
+            grid.innerHTML = ""; 
             snapshot.forEach((docSnap) => {
                 const id = docSnap.id;
                 const data = docSnap.data();
                 const modelName = data.model || "iPad";
-
                 const tile = document.createElement('div');
                 tile.id = `ipad-${id}`;
                 
@@ -138,11 +182,10 @@
         });
     }
 
-    // 貸出処理
+    // 貸出
     async function handleBorrow(id, model) {
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
-
         try {
             await setDoc(doc(db, "ipads", String(id)), {
                 status: "borrowed",
@@ -152,10 +195,9 @@
         } catch (e) { alert("貸出に失敗しました。"); }
     }
 
-    // 返却処理
+    // 返却
     async function handleReturn(id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
-
         try {
             await setDoc(doc(db, "ipads", String(id)), {
                 status: "available",
@@ -164,24 +206,6 @@
             }, { merge: true });
         } catch (e) { alert("返却に失敗しました。"); }
     }
-</script>
-<script>
-  // 💡 PWAサービスワーカーの登録
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // アップデートがあれば自動リロード
-              window.location.reload();
-            }
-          });
-        });
-      });
-    });
-  }
 </script>
 </body>
 </html>
