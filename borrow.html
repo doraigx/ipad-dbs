@@ -286,14 +286,19 @@
         });
     }
 
+    // 💡 borrow.html 内の handleBorrow 関数を以下に差し替えてください
     async function handleBorrow(id, model) {
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
         try {
-            await setDoc(doc(db, "ipads", String(id)), { status: "borrowed", borrowedBy: myStudentId, borrowedAt: new Date() }, { merge: true });
+            await setDoc(doc(db, "ipads", String(id)), {
+                status: "borrowed",
+                borrowedBy: myStudentId,
+                borrowedByName: myCustomName, // 💡 ここで自分の設定した名前も一緒にクラウドへ送信します
+                borrowedAt: new Date()
+            }, { merge: true });
         } catch (e) { alert("貸出に失敗しました。"); }
     }
-
     async function handleReturn(id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
