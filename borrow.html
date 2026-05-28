@@ -252,7 +252,7 @@
                     mainTile.innerHTML = `
                         No.${id}
                         <div class="tile-model">${modelName}</div>
-                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🟠 あなたが借用中" : "🔴 貸出中"}</div>
+                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🟠 あなたが借用中" : "🔴 貸出不可"}</div>
                     `;
                     if (data.borrowedBy === myStudentId) {
                         mainTile.onclick = () => handleReturn(id);
@@ -262,7 +262,7 @@
                     mainTile.innerHTML = `
                         No.${id}
                         <div class="tile-model">${modelName}</div>
-                        <div class="tile-info">🟢 借用可能</div>
+                        <div class="tile-info">🟢 貸出可能</div>
                     `;
                     mainTile.onclick = () => handleBorrow(id, modelName);
                 }
