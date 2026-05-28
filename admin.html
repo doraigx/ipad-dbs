@@ -39,10 +39,26 @@
         .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
         .model-edit-input { padding: 8px 14px; font-size: 1.15rem; border: 2px solid #2196f3; border-radius: 6px; width: 95%; box-sizing: border-box; }
 
-        .action-btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; }
+        /* 💡 新設：ボタンを横並びに固定し、はみ出しを防ぐフレックスコンテナ */
+        .button-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .action-btn { 
+            padding: 8px 18px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.95rem; 
+            font-weight: bold; 
+            border: 1px solid #ccc; 
+            transition: 0.2s; 
+            white-space: nowrap; /* ボタン内の文字が絶対に改行されないようにガード */
+        }
         .return-btn { background: #e0e0e0; color: #333; }
         .return-btn:hover { background: #ddd; }
-        .delete-btn { background: #ff4444; color: white; border-color: #ff4444; margin-left: 8px; }
+        .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
         .delete-btn:hover { background: #cc0000; }
         
         .danger-zone { background: #fff3f3; border: 1px solid #ffcdd2; }
@@ -76,13 +92,12 @@
                 <th style="width: 10%;">管理番号</th>
                 <th style="width: 40%;">型番 / モデル名 (ダブルクリックで編集)</th>
                 <th style="width: 13%;">現在の状態</th>
-                <th style="width: 15%;">借用者（学籍番号）</th>
+                <th style="width: 12%;">借用者（学籍番号）</th>
                 <th style="width: 12%;">貸出日時</th>
-                <th style="width: 10%;">操作</th>
-            </tr>
+                <th style="width: 13%;">操作</th> </tr>
         </thead>
         <tbody id="admin-table-body">
-            </tbody>
+        </tbody>
     </table>
 
     <h2>👤 学生データ管理・修正（学籍番号の変更）</h2>
@@ -128,16 +143,26 @@
             let statusHTML = `<span class="status-badge status-ok">🟢 貸出可能</span>`;
             let userHTML = `<span style="color: #aaa;">—</span>`;
             let dateHTML = `<span style="color: #aaa;">—</span>`;
-            let actionHTML = `<button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>`;
+            
+            // 💡 貸出可能時：削除ボタンをフレックスコンテナで包む
+            let actionHTML = `
+                <div class="button-container">
+                    <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                </div>
+            `;
 
             if (data.status === "borrowed") {
                 const dateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
                 statusHTML = `<span class="status-badge status-ng">🔴 貸出中</span>`;
                 userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:6px 12px; border-radius:4px;">${data.borrowedBy}</mark>`;
                 dateHTML = dateStr;
+                
+                // 💡 貸出中時：返却と削除ボタンをコンテナ内で綺麗に横並び化
                 actionHTML = `
-                    <button class="action-btn return-btn" onclick="window.forceReturn('${id}')">返却</button>
-                    <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                    <div class="button-container">
+                        <button class="action-btn return-btn" onclick="window.forceReturn('${id}')">返却</button>
+                        <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                    </div>
                 `;
             }
 
