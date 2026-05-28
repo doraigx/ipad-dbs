@@ -15,13 +15,13 @@
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
-        /* タイル型UI */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; margin-top: 20px; }
-        .ipad-tile { height: 100px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
+        .ipad-tile { height: 110px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
-        .available { background: #4caf50; color: white; } /* 貸出可：緑 */
-        .borrowed { background: #f44336; color: white; }  /* 貸出中：赤 */
-        .tile-info { font-size: 0.7rem; margin-top: 5px; opacity: 0.9; }
+        .available { background: #4caf50; color: white; } 
+        .borrowed { background: #f44336; color: white; }  
+        .tile-info { font-size: 0.75rem; margin-top: 8px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; }
+        .tile-model { font-size: 0.65rem; opacity: 0.8; margin-top: 2px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
     </style>
 </head>
 <body>
@@ -46,16 +46,17 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 💡 同一のFirebase設定（Portalのものをそのまま使用）
+    // 🔑 新しい専用データベースの設定を適用
     const firebaseConfig = {
-        apiKey: "AIzaSyBCNywQHj5fXQTm5_9GlM5csQSIjD7hnwE",
-        authDomain: "mypotal.firebaseapp.com",
-        projectId: "mypotal",
-        storageBucket: "mypotal.firebasestorage.app",
-        messagingSenderId: "743769639086",
-        appId: "1:743769639086:web:058ba51de8eeba2e35c53f"
+        apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
+        authDomain: "ipad-database-2c20b.firebaseapp.com",
+        projectId: "ipad-database-2c20b",
+        storageBucket: "ipad-database-2c20b.firebasestorage.app",
+        messagingSenderId: "558760087924",
+        appId: "1:558760087924:web:857e8e8096d78671c49c21",
+        measurementId: "G-CEM2VYFRN9"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -65,18 +66,17 @@
 
     let myStudentId = "";
 
-    // 🔒 認証状態・学籍番号紐付けチェック
+    // 🔒 認証状態監視
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
             document.getElementById('user-info').innerHTML = `<button id="login-btn">Googleログインして利用開始</button>`;
             document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
         } else {
-            // 登録済みの学籍番号があるかFirestoreを確認
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists() && userDoc.data().studentId) {
                 myStudentId = userDoc.data().studentId;
                 document.getElementById('auth-section').innerHTML = `👤 ログイン中: <strong>${user.displayName}</strong> (${myStudentId})`;
-                initIpadGrid(); // 学籍番号があれば利用開始
+                initDynamicIpadGrid(); 
             } else {
                 document.getElementById('user-info').textContent = `👤 ログイン中: ${user.displayName}`;
                 document.getElementById('student-id-area').style.display = "block";
@@ -84,88 +84,83 @@
         }
     });
 
-    // 学籍番号の登録処理
+    // 学籍番号登録
     document.getElementById('save-id-btn')?.addEventListener('click', async () => {
         const idInput = document.getElementById('student-id-input').value.trim();
         if (!idInput) return alert("学籍番号を入力してください");
         
         try {
             await setDoc(doc(db, "users", auth.currentUser.uid), { studentId: idInput }, { merge: true });
-            alert("学籍番号を紐付けました。ページを再読み込みします。");
+            alert("学籍番号を紐付けました。");
             window.location.reload();
         } catch(e) { alert("登録に失敗しました。"); }
     });
 
-    // iPadタイルのリアルタイム同期と描画
-    function initIpadGrid() {
+    // 📊 管理者の追加・削除に完全リアルタイム連動する動的タイル生成
+    function initDynamicIpadGrid() {
         const grid = document.getElementById('ipad-grid');
-        grid.innerHTML = "";
+        
+        onSnapshot(collection(db, "ipads"), (snapshot) => {
+            grid.innerHTML = ""; // 画面をリセット
 
-        // ①〜⑩のドキュメントをリアルタイム監視
-        for (let i = 1; i <= 10; i++) {
-            // タイルをあらかじめ生成
-            const tile = document.createElement('div');
-            tile.id = `ipad-${i}`;
-            tile.className = "ipad-tile available";
-            tile.innerHTML = `No.${i}<div class="tile-info">貸出可</div>`;
-            grid.appendChild(tile);
+            snapshot.forEach((docSnap) => {
+                const id = docSnap.id;
+                const data = docSnap.data();
+                const modelName = data.model || "iPad";
 
-            // クラウド上のデータを監視して見た目を自動更新
-            onSnapshot(doc(db, "ipads", String(i)), (docSnap) => {
-                const currentTile = document.getElementById(`ipad-${i}`);
-                if (!currentTile) return;
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.status === "borrowed") {
-                        currentTile.className = "ipad-tile borrowed";
-                        // 自分が借りているなら「返却」、他人なら「貸出中」
-                        currentTile.innerHTML = `No.${i}<div class="tile-info">${data.borrowedBy === myStudentId ? "🔄 タップして返却" : "🔴 貸出中"}</div>`;
-                        currentTile.onclick = () => { if(data.borrowedBy === myStudentId) handleReturn(i); };
-                    } else {
-                        setTileToAvailable(currentTile, i);
+                const tile = document.createElement('div');
+                tile.id = `ipad-${id}`;
+                
+                if (data.status === "borrowed") {
+                    tile.className = "ipad-tile borrowed";
+                    tile.innerHTML = `
+                        No.${id}
+                        <div class="tile-model">${modelName}</div>
+                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🔄 返却する" : "🔴 貸出中"}</div>
+                    `;
+                    if (data.borrowedBy === myStudentId) {
+                        tile.onclick = () => handleReturn(id);
                     }
                 } else {
-                    // まだデータベースにない初期状態のとき
-                    setTileToAvailable(currentTile, i);
+                    tile.className = "ipad-tile available";
+                    tile.innerHTML = `
+                        No.${id}
+                        <div class="tile-model">${modelName}</div>
+                        <div class="tile-info">🟢 借用可能</div>
+                    `;
+                    tile.onclick = () => handleBorrow(id, modelName);
                 }
+                grid.appendChild(tile);
             });
-        }
+        });
     }
 
-    function setTileToAvailable(tile, index) {
-        tile.className = "ipad-tile available";
-        tile.innerHTML = `No.${index}<div class="tile-info">🟢 借切可能</div>`;
-        tile.onclick = () => handleBorrow(index);
-    }
-
-    // 貸出処理（緑 ➡️ 赤）
-    async function handleBorrow(id) {
+    // 貸出処理
+    async function handleBorrow(id, model) {
         if (!myStudentId) return;
-        if (!confirm(`No.${id} のiPadを借りますか？`)) return;
+        if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
 
         try {
             await setDoc(doc(db, "ipads", String(id)), {
                 status: "borrowed",
                 borrowedBy: myStudentId,
                 borrowedAt: new Date()
-            });
-        } catch (e) { alert("貸出処理に失敗しました。"); }
+            }, { merge: true });
+        } catch (e) { alert("貸出に失敗しました。"); }
     }
 
-    // 返却処理（赤 ➡️ 緑）
+    // 返却処理
     async function handleReturn(id) {
-        if (!confirm(`No.${id} のiPadを返却しますか？`)) return;
+        if (!confirm(`No.${id} を返却しますか？`)) return;
 
         try {
             await setDoc(doc(db, "ipads", String(id)), {
                 status: "available",
                 borrowedBy: "",
                 returnedAt: new Date()
-            });
-        } catch (e) { alert("返却処理に失敗しました。"); }
+            }, { merge: true });
+        } catch (e) { alert("返却に失敗しました。"); }
     }
-    
 </script>
 </body>
 </html>
