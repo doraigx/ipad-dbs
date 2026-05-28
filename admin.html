@@ -6,10 +6,7 @@
     <title>iPad貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 💡 画面全体の余白をなくし、フルスクリーン対応にする */
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 30px 20px; box-sizing: border-box; }
-        
-        /* 💡 横幅を100%に広げ、最大幅の制限を解除（フルワイド） */
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
         
         h1 { text-align: center; margin-bottom: 35px; color: #2196f3; font-size: 2.2rem; }
@@ -22,10 +19,7 @@
         .add-btn { padding: 14px 40px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
         .add-btn:hover { background: #1976d2; }
 
-        /* 💡 テーブルを画面端から端までワイドに拡張 */
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 20px; font-size: 1.15rem; }
-        
-        /* 💡 パディングをさらに広げ、1行ずつの視認性と迫力を極限まで高める */
         th, td { padding: 20px 24px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 1.2rem; letter-spacing: 0.5px; }
         
@@ -34,28 +28,12 @@
         .status-ng { background: #f44336; }
         tr:hover { background-color: #f4f9ff; } 
         
-        /* 💡 編集用インプット周りも幅広に最適化 */
         .editable-model { cursor: pointer; padding: 8px 14px; border-radius: 6px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #bbb; display: block; width: 95%; box-sizing: border-box; font-weight: 500; }
         .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
         .model-edit-input { padding: 8px 14px; font-size: 1.15rem; border: 2px solid #2196f3; border-radius: 6px; width: 95%; box-sizing: border-box; }
 
-        /* 💡 新設：ボタンを横並びに固定し、はみ出しを防ぐフレックスコンテナ */
-        .button-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .action-btn { 
-            padding: 8px 18px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 0.95rem; 
-            font-weight: bold; 
-            border: 1px solid #ccc; 
-            transition: 0.2s; 
-            white-space: nowrap; /* ボタン内の文字が絶対に改行されないようにガード */
-        }
+        .button-container { display: flex; gap: 8px; align-items: center; }
+        .action-btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; white-space: nowrap; }
         .return-btn { background: #e0e0e0; color: #333; }
         .return-btn:hover { background: #ddd; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
@@ -94,7 +72,8 @@
                 <th style="width: 13%;">現在の状態</th>
                 <th style="width: 12%;">借用者（学籍番号）</th>
                 <th style="width: 12%;">貸出日時</th>
-                <th style="width: 13%;">操作</th> </tr>
+                <th style="width: 13%;">操作</th>
+            </tr>
         </thead>
         <tbody id="admin-table-body">
         </tbody>
@@ -108,7 +87,7 @@
         </div>
         <div class="form-group">
             <label for="correct-student-id">修正後の正しい学籍番号</label>
-            <input type="text" id="correct-student-id" placeholder="例: B260099">
+            <input type="text" id="correct-student-id" placeholder="例: B260001">
         </div>
         <button class="add-btn danger-btn" id="fix-student-btn">🛠️ 学籍番号を強制書き換え</button>
     </div>
@@ -116,7 +95,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query, updateDoc, getDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -144,7 +123,6 @@
             let userHTML = `<span style="color: #aaa;">—</span>`;
             let dateHTML = `<span style="color: #aaa;">—</span>`;
             
-            // 💡 貸出可能時：削除ボタンをフレックスコンテナで包む
             let actionHTML = `
                 <div class="button-container">
                     <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
@@ -157,7 +135,6 @@
                 userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:6px 12px; border-radius:4px;">${data.borrowedBy}</mark>`;
                 dateHTML = dateStr;
                 
-                // 💡 貸出中時：返却と削除ボタンをコンテナ内で綺麗に横並び化
                 actionHTML = `
                     <div class="button-container">
                         <button class="action-btn return-btn" onclick="window.forceReturn('${id}')">返却</button>
@@ -230,6 +207,7 @@
         } catch(e) { alert("追加に失敗しました。"); }
     });
 
+    // 💡 改善：学籍番号変更時に、貸出中iPad側のデータも同時にスキャンして書き換えるロジック
     document.getElementById('fix-student-btn').addEventListener('click', async () => {
         const uid = document.getElementById('student-uid').value.trim();
         const newStudentId = document.getElementById('correct-student-id').value.trim();
@@ -239,13 +217,42 @@
             return;
         }
 
-        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？`)) {
+        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（現在貸出中のiPadがある場合はそれらも自動更新されます）`)) {
             try {
-                await setDoc(doc(db, "users", uid), { studentId: newStudentId }, { merge: true });
-                alert("学籍番号の書き換えが正常に完了しました。");
+                // 1. まず該当学生のこれまでの古い学籍番号を取得する
+                const userDocRef = doc(db, "users", uid);
+                const userSnap = await getDoc(userDocRef);
+                
+                let oldStudentId = "";
+                if (userSnap.exists()) {
+                    oldStudentId = userSnap.data().studentId || "";
+                }
+
+                // 2. 学生マスター（usersコレクション）の学籍番号を上書き
+                await setDoc(userDocRef, { studentId: newStudentId }, { merge: true });
+
+                // 3. 💡 連動処理：もし古い学籍番号が存在していた場合、ipadsコレクション内を串刺し検索
+                if (oldStudentId) {
+                    const ipadRef = collection(db, "ipads");
+                    const q = query(ipadRef, where("borrowedBy", "==", oldStudentId), where("status", "==", "borrowed"));
+                    const querySnapshot = await getDocs(q);
+                    
+                    // 古い学籍番号で借りっぱなしになっているiPadをすべて新しい学籍番号へ打ち替える
+                    const promises = [];
+                    querySnapshot.forEach((ipadDoc) => {
+                        const docRef = doc(db, "ipads", ipadDoc.id);
+                        promises.push(updateDoc(docRef, { borrowedBy: newStudentId }));
+                    });
+                    await Promise.all(promises);
+                }
+
+                alert("学籍番号、および貸出中iPadデータの紐付け変更がすべて正常に完了しました！");
                 document.getElementById('student-uid').value = "";
                 document.getElementById('correct-student-id').value = "";
-            } catch(e) { alert("学生データの書き換えに失敗しました。UIDが正しいか確認してください。"); }
+            } catch(e) { 
+                console.error(e);
+                alert("学生データの書き換えに失敗しました。UIDが正しいか確認してください。"); 
+            }
         }
     });
 
