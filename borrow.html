@@ -24,9 +24,8 @@
         .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
         .accordion-trigger::after { content: '▼'; font-size: 0.7rem; transition: transform 0.2s; }
         .accordion-item.open .accordion-trigger::after { transform: rotate(180deg); }
-        .accordion-content { background: #0f0f0f; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; }
+        .accordion-content { background: #0f0f0f; overflow: hidden; transition: max-height 0.2s ease-out; }
         
-        /* 蛇腹の中身の内側余白 */
         .accordion-inner { padding: 15px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; }
 
@@ -93,7 +92,6 @@
                 }
 
                 if (!myStudentId) {
-                    // 初回：学籍番号未登録時は隠さずそのまま入力させる
                     idInputHTML = `
                         <div class="info-row">⚠️ 学籍番号が登録されていません：</div>
                         <div class="input-group">
@@ -102,13 +100,13 @@
                         </div>
                     `;
                 } else {
-                    // 💡 登録済み：学籍番号を表示し、名前変更フォームとUIDをそれぞれ個別の蛇腹にする
+                    // 💡 `style="max-height: 0px;"` をHTML側に直接指定して、最初から確実に閉じさせます
                     idInputHTML = `
                         <div class="info-row">🔑 学籍番号: <strong>${myStudentId}</strong> <span style="font-size:0.75rem; color:#888;">(※変更不可)</span></div>
                         
                         <div class="accordion-item" id="name-accordion">
                             <div class="accordion-trigger" onclick="window.toggleAccordion('name-accordion')">👤 本名・表示名を入力・変更する</div>
-                            <div class="accordion-content">
+                            <div class="accordion-content" style="max-height: 0px;">
                                 <div class="accordion-inner">
                                     <div class="info-row">表示名を入力（自由に変更できます）:</div>
                                     <div class="input-group">
@@ -121,7 +119,7 @@
 
                         <div class="accordion-item" id="uid-accordion">
                             <div class="accordion-trigger" onclick="window.toggleAccordion('uid-accordion')">⚙️ 管理者問い合わせ用IDを表示</div>
-                            <div class="accordion-content">
+                            <div class="accordion-content" style="max-height: 0px;">
                                 <div class="accordion-inner uid-text">${user.uid}</div>
                             </div>
                         </div>
@@ -145,7 +143,7 @@
         }
     });
 
-    // 💡 改良：指定されたIDの蛇腹メニューを個別に開閉制御する汎用ロジック
+    // 蛇腹メニューの開閉ロジック
     window.toggleAccordion = function(id) {
         const accordion = document.getElementById(id);
         const content = accordion.querySelector('.accordion-content');
@@ -155,7 +153,7 @@
             content.style.maxHeight = '0px';
         } else {
             accordion.classList.add('open');
-            content.style.maxHeight = content.scrollHeight + 'px'; // 内部パーツの高さに合わせてピッタリ広げる
+            content.style.maxHeight = content.scrollHeight + 'px'; 
         }
     };
 
@@ -177,8 +175,6 @@
         try {
             await setDoc(doc(db, "users", auth.currentUser.uid), { customName: newName }, { merge: true });
             alert("表示名を変更しました。");
-            
-            // 名前変更が成功したら、蛇腹を自動でスッキリ閉じる
             window.toggleAccordion('name-accordion');
         } catch(e) { alert("名前の変更に失敗しました。"); }
     }
