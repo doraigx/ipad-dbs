@@ -28,6 +28,7 @@
         .status-ng { background: #f44336; }
         tr:hover { background-color: #f4f9ff; } 
         
+        /* 💡 ボックスの最大幅を少しタイトにして調整可能に */
         .editable-model { cursor: pointer; padding: 8px 14px; border-radius: 6px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #bbb; display: block; width: 95%; box-sizing: border-box; font-weight: 500; }
         .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
         .model-edit-input { padding: 8px 14px; font-size: 1.15rem; border: 2px solid #2196f3; border-radius: 6px; width: 95%; box-sizing: border-box; }
@@ -68,11 +69,10 @@
         <thead>
             <tr>
                 <th style="width: 10%;">管理番号</th>
-                <th style="width: 40%;">型番 / モデル名 (ダブルクリックで編集)</th>
-                <th style="width: 13%;">現在の状態</th>
+                <th style="width: 30%;">型番 / モデル名 (ダブルクリックで編集)</th> <th style="width: 13%;">現在の状態</th>
                 <th style="width: 12%;">借用者（学籍番号）</th>
-                <th style="width: 12%;">貸出日時</th>
-                <th style="width: 13%;">操作</th>
+                <th style="width: 12%;">借用者（氏名）</th> <th style="width: 12%;">貸出日時</th>
+                <th style="width: 11%;">操作</th>
             </tr>
         </thead>
         <tbody id="admin-table-body">
@@ -121,6 +121,7 @@
             
             let statusHTML = `<span class="status-badge status-ok">🟢 貸出可能</span>`;
             let userHTML = `<span style="color: #aaa;">—</span>`;
+            let nameHTML = `<span style="color: #aaa;">—</span>`; // 💡 氏名初期化
             let dateHTML = `<span style="color: #aaa;">—</span>`;
             
             let actionHTML = `
@@ -133,6 +134,7 @@
                 const dateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
                 statusHTML = `<span class="status-badge status-ng">🔴 貸出中</span>`;
                 userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:6px 12px; border-radius:4px;">${data.borrowedBy}</mark>`;
+                nameHTML = `<strong>${data.borrowedByName || "未取得"}</strong>`; // 💡 データベース内の氏名を表示
                 dateHTML = dateStr;
                 
                 actionHTML = `
@@ -150,7 +152,7 @@
                 </td>
                 <td>${statusHTML}</td>
                 <td>${userHTML}</td>
-                <td style="font-size:1rem; font-weight:500;">${dateHTML}</td>
+                <td>${nameHTML}</td> <td style="font-size:1rem; font-weight:500;">${dateHTML}</td>
                 <td>${actionHTML}</td>
             `;
             tbody.appendChild(row);
@@ -200,6 +202,7 @@
                 model: modelInput,
                 status: "available",
                 borrowedBy: "",
+                borrowedByName: "", // 初期化
                 createdAt: new Date()
             });
             document.getElementById('new-ipad-id').value = "";
@@ -207,7 +210,6 @@
         } catch(e) { alert("追加に失敗しました。"); }
     });
 
-    // 💡 改善：学籍番号変更時に、貸出中iPad側のデータも同時にスキャンして書き換えるロジック
     document.getElementById('fix-student-btn').addEventListener('click', async () => {
         const uid = document.getElementById('student-uid').value.trim();
         const newStudentId = document.getElementById('correct-student-id').value.trim();
@@ -219,29 +221,31 @@
 
         if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（現在貸出中のiPadがある場合はそれらも自動更新されます）`)) {
             try {
-                // 1. まず該当学生のこれまでの古い学籍番号を取得する
                 const userDocRef = doc(db, "users", uid);
                 const userSnap = await getDoc(userDocRef);
                 
                 let oldStudentId = "";
+                let studentName = "";
                 if (userSnap.exists()) {
                     oldStudentId = userSnap.data().studentId || "";
+                    studentName = userSnap.data().customName || ""; // 同期用に氏名もキープ
                 }
 
-                // 2. 学生マスター（usersコレクション）の学籍番号を上書き
                 await setDoc(userDocRef, { studentId: newStudentId }, { merge: true });
 
-                // 3. 💡 連動処理：もし古い学籍番号が存在していた場合、ipadsコレクション内を串刺し検索
                 if (oldStudentId) {
                     const ipadRef = collection(db, "ipads");
                     const q = query(ipadRef, where("borrowedBy", "==", oldStudentId), where("status", "==", "borrowed"));
                     const querySnapshot = await getDocs(q);
                     
-                    // 古い学籍番号で借りっぱなしになっているiPadをすべて新しい学籍番号へ打ち替える
                     const promises = [];
                     querySnapshot.forEach((ipadDoc) => {
                         const docRef = doc(db, "ipads", ipadDoc.id);
-                        promises.push(updateDoc(docRef, { borrowedBy: newStudentId }));
+                        // 💡 連動更新：学籍番号に加え、現在の登録氏名（カスタムネーム）も合わせてセットします
+                        promises.push(updateDoc(docRef, { 
+                            borrowedBy: newStudentId,
+                            borrowedByName: studentName
+                        }));
                     });
                     await Promise.all(promises);
                 }
@@ -263,7 +267,8 @@
 
     window.forceReturn = async function(id) {
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
-        try { await setDoc(doc(db, "ipads", id), { status: "available", borrowedBy: "" }, { merge: true }); } catch(e) { alert("返却処理に失敗しました。"); }
+        // 💡 返却時に氏名データもクリア
+        try { await setDoc(doc(db, "ipads", id), { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true }); } catch(e) { alert("返却処理に失敗しました。"); }
     };
 </script>
 </body>
