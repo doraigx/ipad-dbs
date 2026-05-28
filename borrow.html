@@ -42,7 +42,9 @@
         .ipad-tile:hover { transform: translateY(-3px); }
         .available { background: #4caf50; color: white; } 
         .borrowed { background: #f44336; color: white; }  
-        .my-borrowed { background: #ff9800; color: white; border: 2px solid #fff; } /* 💡 自分が借りている端末はオレンジ色でさらに目立たせます */
+        
+        /* 💡 修正：白枠（border: 2px solid #fff;）を綺麗に消去しました */
+        .my-borrowed { background: #ff9800; color: white; } 
         
         .tile-info { font-size: 0.75rem; margin-top: 8px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; }
         .tile-model { font-size: 0.65rem; opacity: 0.8; margin-top: 2px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
@@ -59,10 +61,10 @@
         <p id="user-info">ユーザー情報を読み込み中...</p>
     </div>
 
-    <h2>借りているiPad</h2>
+    <h2>🎒 あなたが借りているiPad</h2>
     <div class="grid" id="my-ipad-grid"></div>
 
-    <h2>貸出リスト</h2>
+    <h2>📋 貸出・返却（すべてのiPad一覧）</h2>
     <div class="grid" id="ipad-grid"></div>
 </div>
 
@@ -158,7 +160,7 @@
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
-                    initSeparateIpadGrids(); // 💡 2つの独立したリストの生成を開始
+                    initSeparateIpadGrids(); 
                 }
             });
         }
@@ -205,7 +207,7 @@
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    // 📊 💡 完全に分離された2つのグリッドを描画するメイン関数
+    // 分離された2つのグリッドを描画するメイン関数
     function initSeparateIpadGrids() {
         const myGrid = document.getElementById('my-ipad-grid');
         const mainGrid = document.getElementById('ipad-grid');
@@ -214,7 +216,6 @@
             myGrid.innerHTML = ""; 
             mainGrid.innerHTML = ""; 
 
-            // 管理番号順（数値の昇順）に並べるためのソート用配列を作成
             const ipadList = [];
             snapshot.forEach((docSnap) => {
                 ipadList.push({ id: docSnap.id, data: docSnap.data() });
@@ -223,7 +224,6 @@
 
             let myBorrowCount = 0;
 
-            // データベースの端末を順番にチェックして、それぞれのリストへ振り分ける
             ipadList.forEach((item) => {
                 const id = item.id;
                 const data = item.data;
@@ -243,7 +243,7 @@
                     myGrid.appendChild(myTile);
                 }
 
-                // 2. 全体リスト（下の通常リストへ出力。常にすべての番号が順番通りに並びます）
+                // 2. 全体リスト（下の通常リストへ出力）
                 const mainTile = document.createElement('div');
                 mainTile.id = `main-ipad-${id}`;
 
@@ -252,9 +252,8 @@
                     mainTile.innerHTML = `
                         No.${id}
                         <div class="tile-model">${modelName}</div>
-                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🔴 あなたが借用中" : "🔴 貸出中"}</div>
+                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🧡 あなたが借用中" : "🔴 貸出中"}</div>
                     `;
-                    // 自分が借りているものなら下段の全体リストからでもタップで返却可能にする
                     if (data.borrowedBy === myStudentId) {
                         mainTile.onclick = () => handleReturn(id);
                     }
@@ -270,7 +269,6 @@
                 mainGrid.appendChild(mainTile);
             });
 
-            // もし何も借りていない場合は、上のリストエリアに案内文を表示
             if (myBorrowCount === 0) {
                 myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りているiPadはありません。</div>`;
             }
