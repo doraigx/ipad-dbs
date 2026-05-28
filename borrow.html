@@ -10,22 +10,21 @@
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 630px; margin: 0 auto; }
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
+        h2 { font-size: 1.3rem; margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid #2196f3; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
         
         .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
-        /* 💡 縦並び用のボタンレイアウト */
         .block-btn { width: 100%; padding: 12px; margin-top: 8px; font-size: 0.95rem; display: block; box-sizing: border-box; }
-        /* 💡 ログアウトボタン用（オレンジ系） */
         .logout-btn { background: #ff5722; color: white; margin-top: 15px; }
         .logout-btn:hover { background: #e64a19; }
 
         .profile-section { display: flex; flex-direction: column; gap: 4px; }
         .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
 
-        /* 1つの大きな蛇腹（アコーディオン）メニューのスタイル */
+        /* 蛇腹（アコーディオン）メニューのスタイル */
         .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
         .accordion-trigger { background: #252525; padding: 12px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
         .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
@@ -33,18 +32,23 @@
         .accordion-item.open .accordion-trigger::after { transform: rotate(180deg); }
         .accordion-content { background: #0f0f0f; overflow: hidden; transition: max-height 0.2s ease-out; }
         
-        /* 蛇腹の中のレイアウト構造 */
         .accordion-inner { padding: 18px; display: flex; flex-direction: column; gap: 20px; }
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
+        /* グリッドレイアウト */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
         .ipad-tile { height: 110px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
         .available { background: #4caf50; color: white; } 
         .borrowed { background: #f44336; color: white; }  
+        .my-borrowed { background: #ff9800; color: white; border: 2px solid #fff; } /* 💡 自分が借りている端末はオレンジ色でさらに目立たせます */
+        
         .tile-info { font-size: 0.75rem; margin-top: 8px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; }
         .tile-model { font-size: 0.65rem; opacity: 0.8; margin-top: 2px; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+        
+        /* 空白時のメッセージ */
+        .empty-message { grid-column: 1 / -1; background: #1e1e1e; color: #666; text-align: center; padding: 20px; border-radius: 8px; font-size: 0.9rem; border: 1px dashed #333; }
     </style>
 </head>
 <body>
@@ -55,7 +59,10 @@
         <p id="user-info">ユーザー情報を読み込み中...</p>
     </div>
 
-    <h2>貸出・返却</h2>
+    <h2>🎒 あなたが借りているiPad</h2>
+    <div class="grid" id="my-ipad-grid"></div>
+
+    <h2>📋 貸出・返却（すべてのiPad一覧）</h2>
     <div class="grid" id="ipad-grid"></div>
 </div>
 
@@ -109,7 +116,6 @@
                         </div>
                     `;
                 } else {
-                    // 💡 ボタンをボックスの下に配置し、最下部にログアウトを追加
                     idInputHTML = `
                         <div class="info-row">🔑 学籍番号: <strong>${myStudentId}</strong> <span style="font-size:0.75rem; color:#888;">(※変更不可)</span></div>
                         
@@ -152,17 +158,16 @@
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
-                    initDynamicIpadGrid();
+                    initSeparateIpadGrids(); // 💡 2つの独立したリストの生成を開始
                 }
             });
         }
     });
 
-    // 蛇腹メニューの開閉ロジック
+    // 蛇腹開閉
     window.toggleAccordion = function(id) {
         const accordion = document.getElementById(id);
         const content = accordion.querySelector('.accordion-content');
-        
         if (accordion.classList.contains('open')) {
             accordion.classList.remove('open');
             content.style.maxHeight = '0px';
@@ -176,10 +181,7 @@
         const idInput = document.getElementById('student-id-input').value.trim();
         if (!idInput) return alert("学籍番号を入力してください");
         try {
-            await setDoc(doc(db, "users", auth.currentUser.uid), { 
-                studentId: idInput,
-                customName: auth.currentUser.displayName 
-            }, { merge: true });
+            await setDoc(doc(db, "users", auth.currentUser.uid), { studentId: idInput, customName: auth.currentUser.displayName }, { merge: true });
             alert("学籍番号を紐付けました！");
         } catch(e) { alert("登録に失敗しました。"); }
     }
@@ -194,51 +196,84 @@
         } catch(e) { alert("名前の変更に失敗しました。"); }
     }
 
-    // 💡 新設：ログアウト処理
     async function handleLogout() {
         if (!confirm("システムからログアウトしますか？")) return;
         try {
             await signOut(auth);
             alert("ログアウトしました。ログイン画面に戻ります。");
-            // 履歴を上書きして完全に接続を打ち切る安全なリダイレクト
             window.location.replace("./login.html");
-        } catch(e) {
-            alert("ログアウトに失敗しました。");
-        }
+        } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    function initDynamicIpadGrid() {
-        const grid = document.getElementById('ipad-grid');
+    // 📊 💡 完全に分離された2つのグリッドを描画するメイン関数
+    function initSeparateIpadGrids() {
+        const myGrid = document.getElementById('my-ipad-grid');
+        const mainGrid = document.getElementById('ipad-grid');
+
         onSnapshot(collection(db, "ipads"), (snapshot) => {
-            grid.innerHTML = ""; 
+            myGrid.innerHTML = ""; 
+            mainGrid.innerHTML = ""; 
+
+            // 管理番号順（数値の昇順）に並べるためのソート用配列を作成
+            const ipadList = [];
             snapshot.forEach((docSnap) => {
-                const id = docSnap.id;
-                const data = docSnap.data();
+                ipadList.push({ id: docSnap.id, data: docSnap.data() });
+            });
+            ipadList.sort((a, b) => Number(a.id) - Number(b.id));
+
+            let myBorrowCount = 0;
+
+            // データベースの端末を順番にチェックして、それぞれのリストへ振り分ける
+            ipadList.forEach((item) => {
+                const id = item.id;
+                const data = item.data;
                 const modelName = data.model || "iPad";
-                const tile = document.createElement('div');
-                tile.id = `ipad-${id}`;
-                
-                if (data.status === "borrowed") {
-                    tile.className = "ipad-tile borrowed";
-                    tile.innerHTML = `
+
+                // 1. 自分が借りている端末（上の専用リストへ出力）
+                if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
+                    myBorrowCount++;
+                    const myTile = document.createElement('div');
+                    myTile.className = "ipad-tile my-borrowed";
+                    myTile.innerHTML = `
                         No.${id}
                         <div class="tile-model">${modelName}</div>
-                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🔄 返却する" : "🔴 貸出中"}</div>
+                        <div class="tile-info">🔄 タップして返却</div>
                     `;
+                    myTile.onclick = () => handleReturn(id);
+                    myGrid.appendChild(myTile);
+                }
+
+                // 2. 全体リスト（下の通常リストへ出力。常にすべての番号が順番通りに並びます）
+                const mainTile = document.createElement('div');
+                mainTile.id = `main-ipad-${id}`;
+
+                if (data.status === "borrowed") {
+                    mainTile.className = "ipad-tile borrowed";
+                    mainTile.innerHTML = `
+                        No.${id}
+                        <div class="tile-model">${modelName}</div>
+                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🔴 あなたが借用中" : "🔴 貸出中"}</div>
+                    `;
+                    // 自分が借りているものなら下段の全体リストからでもタップで返却可能にする
                     if (data.borrowedBy === myStudentId) {
-                        tile.onclick = () => handleReturn(id);
+                        mainTile.onclick = () => handleReturn(id);
                     }
                 } else {
-                    tile.className = "ipad-tile available";
-                    tile.innerHTML = `
+                    mainTile.className = "ipad-tile available";
+                    mainTile.innerHTML = `
                         No.${id}
                         <div class="tile-model">${modelName}</div>
                         <div class="tile-info">🟢 借用可能</div>
                     `;
-                    tile.onclick = () => handleBorrow(id, modelName);
+                    mainTile.onclick = () => handleBorrow(id, modelName);
                 }
-                grid.appendChild(tile);
+                mainGrid.appendChild(mainTile);
             });
+
+            // もし何も借りていない場合は、上のリストエリアに案内文を表示
+            if (myBorrowCount === 0) {
+                myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りているiPadはありません。</div>`;
+            }
         });
     }
 
@@ -246,22 +281,14 @@
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
         try {
-            await setDoc(doc(db, "ipads", String(id)), {
-                status: "borrowed",
-                borrowedBy: myStudentId,
-                borrowedAt: new Date()
-            }, { merge: true });
+            await setDoc(doc(db, "ipads", String(id)), { status: "borrowed", borrowedBy: myStudentId, borrowedAt: new Date() }, { merge: true });
         } catch (e) { alert("貸出に失敗しました。"); }
     }
 
     async function handleReturn(id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
-            await setDoc(doc(db, "ipads", String(id)), {
-                status: "available",
-                borrowedBy: "",
-                returnedAt: new Date()
-            }, { merge: true });
+            await setDoc(doc(db, "ipads", String(id)), { status: "available", borrowedBy: "", returnedAt: new Date() }, { merge: true });
         } catch (e) { alert("返却に失敗しました。"); }
     }
 </script>
