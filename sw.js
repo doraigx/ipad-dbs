@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ipad-db-cache-v0.1.1'; 
+const CACHE_NAME = 'ipad-db-cache-v0.1.2'; 
 const urlsToCache = [
   './',
   './borrow.html',
