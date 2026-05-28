@@ -175,5 +175,23 @@
         }
     };
 </script>
+<script>
+  // 💡 PWAサービスワーカーの登録
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // アップデートがあれば自動リロード
+              window.location.reload();
+            }
+          });
+        });
+      });
+    });
+  }
+</script>
 </body>
 </html>
