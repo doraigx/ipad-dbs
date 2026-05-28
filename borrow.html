@@ -17,14 +17,16 @@
         input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
+        /* 💡 縦並び用のボタンレイアウト */
         .block-btn { width: 100%; padding: 12px; margin-top: 8px; font-size: 0.95rem; display: block; box-sizing: border-box; }
+        /* 💡 ログアウトボタン用（オレンジ系） */
         .logout-btn { background: #ff5722; color: white; margin-top: 15px; }
         .logout-btn:hover { background: #e64a19; }
 
         .profile-section { display: flex; flex-direction: column; gap: 4px; }
         .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
 
-        /* 蛇腹（アコーディオン）メニューのスタイル */
+        /* 1つの大きな蛇腹（アコーディオン）メニューのスタイル */
         .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
         .accordion-trigger { background: #252525; padding: 12px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
         .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
@@ -32,6 +34,7 @@
         .accordion-item.open .accordion-trigger::after { transform: rotate(180deg); }
         .accordion-content { background: #0f0f0f; overflow: hidden; transition: max-height 0.2s ease-out; }
         
+        /* 蛇腹の中のレイアウト構造 */
         .accordion-inner { padding: 18px; display: flex; flex-direction: column; gap: 20px; }
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
@@ -40,10 +43,9 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
         .ipad-tile { height: 110px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
+        
         .available { background: #4caf50; color: white; } 
         .borrowed { background: #f44336; color: white; }  
-        
-        /* 💡 修正：白枠（border: 2px solid #fff;）を綺麗に消去しました */
         .my-borrowed { background: #ff9800; color: white; } 
         
         .tile-info { font-size: 0.75rem; margin-top: 8px; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; }
@@ -129,7 +131,7 @@
                                     <div>
                                         <div class="sub-section-title">👤 本名・表示名の変更</div>
                                         <input type="text" id="custom-name-input" value="${nameInputVal}" style="width:100%; margin-top:10px; box-sizing:border-box;">
-                                        <button id="update-name-btn" class="block-btn">✨ 名前の変更を保存する</button>
+                                        <button id="update-name-btn" class="block-btn">名前の変更を保存する</button>
                                     </div>
 
                                     <div>
@@ -139,7 +141,7 @@
 
                                     <div>
                                         <div class="sub-section-title">🚪 認証セッション</div>
-                                        <button id="logout-btn" class="block-btn logout-btn">🚪 システムからログアウト</button>
+                                        <button id="logout-btn" class="block-btn logout-btn">システムからログアウト</button>
                                     </div>
 
                                 </div>
@@ -229,7 +231,7 @@
                 const data = item.data;
                 const modelName = data.model || "iPad";
 
-                // 1. 自分が借りている端末（上の専用リストへ出力）
+                // 1. 自分が借りている端末（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
@@ -248,14 +250,23 @@
                 mainTile.id = `main-ipad-${id}`;
 
                 if (data.status === "borrowed") {
-                    mainTile.className = "ipad-tile borrowed";
-                    mainTile.innerHTML = `
-                        No.${id}
-                        <div class="tile-model">${modelName}</div>
-                        <div class="tile-info">${data.borrowedBy === myStudentId ? "🟠 あなたが借用中" : "🔴 貸出不可"}</div>
-                    `;
                     if (data.borrowedBy === myStudentId) {
+                        // 💡 自分が借りているものは下段でもオレンジ（my-borrowed）にする
+                        mainTile.className = "ipad-tile my-borrowed";
+                        mainTile.innerHTML = `
+                            No.${id}
+                            <div class="tile-model">${modelName}</div>
+                            <div class="tile-info">🔄 あなたが借用中</div>
+                        `;
                         mainTile.onclick = () => handleReturn(id);
+                    } else {
+                        // 💡 自分以外が借りているものは赤（borrowed）にする
+                        mainTile.className = "ipad-tile borrowed";
+                        mainTile.innerHTML = `
+                            No.${id}
+                            <div class="tile-model">${modelName}</div>
+                            <div class="tile-info">🔴 貸出不可</div>
+                        `;
                     }
                 } else {
                     mainTile.className = "ipad-tile available";
