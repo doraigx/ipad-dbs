@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPad貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 950px; margin: 0 auto; }
         h1 { text-align: center; margin-bottom: 30px; color: #2196f3; }
+        h2 { font-size: 1.3rem; margin-top: 40px; color: #555; border-left: 4px solid #2196f3; padding-left: 10px; }
         
         .admin-form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
@@ -20,7 +18,7 @@
         .add-btn { padding: 10px 24px; background: #2196f3; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s; }
         .add-btn:hover { background: #1976d2; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 15px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #2196f3; color: white; font-weight: bold; }
         .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; color: white; }
@@ -28,11 +26,19 @@
         .status-ng { background: #f44336; }
         tr:hover { background-color: #f1f1f1; }
         
+        .editable-model { cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #ccc; display: inline-block; min-width: 150px; }
+        .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
+        .model-edit-input { padding: 4px 8px; font-size: 1rem; border: 2px solid #2196f3; border-radius: 4px; width: 90%; box-sizing: border-box; }
+
         .action-btn { padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; border: 1px solid #ccc; }
         .return-btn { background: #e0e0e0; color: #333; }
         .return-btn:hover { background: #ddd; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; margin-left: 5px; }
         .delete-btn:hover { background: #cc0000; }
+        
+        .danger-zone { background: #fff3f3; border: 1px solid #ffcdd2; }
+        .danger-btn { background: #d32f2f; color: white; }
+        .danger-btn:hover { background: #b71c1c; }
     </style>
 </head>
 <body>
@@ -41,8 +47,8 @@
     
     <div class="admin-form">
         <div class="form-group">
-            <label for="new-ipad-id">管理番号 (重複不可)</label>
-            <input type="text" id="new-ipad-id" placeholder="例: 11 や iPad-11">
+            <label for="new-ipad-id">管理番号 (💡半角数字のみ)</label>
+            <input type="text" id="new-ipad-id" placeholder="例: 11" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <div class="form-group">
             <label for="new-ipad-model">型番・モデル名</label>
@@ -51,11 +57,12 @@
         <button class="add-btn" id="add-ipad-btn">➕ 新しいiPadを追加</button>
     </div>
     
+    <p style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">💡 <b>型番/モデル名</b> を変更したい場合は、該当箇所を<b>ダブルクリック</b>すると編集できます（Enterで保存）。</p>
     <table>
         <thead>
             <tr>
                 <th>管理番号</th>
-                <th>型番 / モデル名</th>
+                <th>型番 / モデル名 (ダブルクリックで編集)</th>
                 <th>現在の状態</th>
                 <th>借用者（学籍番号）</th>
                 <th>貸出日時</th>
@@ -65,13 +72,25 @@
         <tbody id="admin-table-body">
             </tbody>
     </table>
+
+    <h2>👤 学生データ管理・修正（学籍番号の変更）</h2>
+    <div class="admin-form danger-zone">
+        <div class="form-group">
+            <label for="student-uid">対象学生のGoogle UID</label>
+            <input type="text" id="student-uid" placeholder="例: AIzaSyBCNywQ... (学生から申告されたUID)">
+        </div>
+        <div class="form-group">
+            <label for="correct-student-id">修正後の正しい学籍番号</label>
+            <input type="text" id="correct-student-id" placeholder="例: B260099">
+        </div>
+        <button class="add-btn danger-btn" id="fix-student-btn">🛠️ 学籍番号を強制書き換え</button>
+    </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 🔑 新しい専用データベースの設定を適用
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
         authDomain: "ipad-database-2c20b.firebaseapp.com",
@@ -84,56 +103,87 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-
     const tbody = document.getElementById('admin-table-body');
-    const ipadsQuery = query(collection(db, "ipads"));
-    
-    onSnapshot(ipadsQuery, (snapshot) => {
-        tbody.innerHTML = ""; 
 
+    // データベースから一覧をリアルタイム取得・描画
+    onSnapshot(query(collection(db, "ipads")), (snapshot) => {
+        tbody.innerHTML = ""; 
         snapshot.forEach((docSnap) => {
             const id = docSnap.id;
             const data = docSnap.data();
             const model = data.model || "未設定";
-
             const row = document.createElement('tr');
             
+            let statusHTML = `<span class="status-badge status-ok">🟢 貸出可能</span>`;
+            let userHTML = `<span style="color: #aaa;">—</span>`;
+            let dateHTML = `<span style="color: #aaa;">—</span>`;
+            let actionHTML = `<button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>`;
+
             if (data.status === "borrowed") {
                 const dateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-                row.innerHTML = `
-                    <td><strong>No.${id}</strong></td>
-                    <td>${model}</td>
-                    <td><span class="status-badge status-ng">🔴 貸出中</span></td>
-                    <td><mark style="background:#ffeb3b; font-weight:bold; padding:2px 6px;">${data.borrowedBy}</mark></td>
-                    <td style="font-size:0.9rem;">${dateStr}</td>
-                    <td>
-                        <button class="action-btn return-btn" onclick="window.forceReturn('${id}')">返却</button>
-                        <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
-                    </td>
-                `;
-            } else {
-                row.innerHTML = `
-                    <td>No.${id}</td>
-                    <td>${model}</td>
-                    <td><span class="status-badge status-ok">🟢 貸出可能</span></td>
-                    <td style="color: #aaa;">—</td>
-                    <td style="color: #aaa;">—</td>
-                    <td>
-                        <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
-                    </td>
+                statusHTML = `<span class="status-badge status-ng">🔴 貸出中</span>`;
+                userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:2px 6px;">${data.borrowedBy}</mark>`;
+                dateHTML = dateStr;
+                actionHTML = `
+                    <button class="action-btn return-btn" onclick="window.forceReturn('${id}')">返却</button>
+                    <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
                 `;
             }
+
+            row.innerHTML = `
+                <td><strong>No.${id}</strong></td>
+                <td>
+                    <div class="editable-model" ondblclick="window.startEditModel('${id}', this)">${model}</div>
+                </td>
+                <td>${statusHTML}</td>
+                <td>${userHTML}</td>
+                <td style="font-size:0.9rem;">${dateHTML}</td>
+                <td>${actionHTML}</td>
+            `;
             tbody.appendChild(row);
         });
     });
 
-    // iPadの新規登録
+    // 💡 新設：型番をインラインでインプレース編集するロジック
+    window.startEditModel = function(id, element) {
+        const currentText = element.innerText;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'model-edit-input';
+        input.value = currentText;
+        
+        element.parentNode.replaceChild(input, element);
+        input.focus();
+
+        // 決定処理（Enterキー または フォーカスアウト）
+        async function saveChanges() {
+            const newModelName = input.value.trim();
+            if (newModelName && newModelName !== currentText) {
+                try {
+                    await updateDoc(doc(db, "ipads", id), { model: newModelName });
+                    console.log(`No.${id} の型番変更成功 -> ${newModelName}`);
+                } catch(e) { alert("名前の変更に失敗しました。"); }
+            } else {
+                // キャンセルまたは変更なしなら元に戻す
+                onSnapshot(doc(db, "ipads", id), () => {}); 
+            }
+        }
+
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveChanges(); });
+        input.addEventListener('blur', saveChanges);
+    };
+
+    // iPadの新規登録 (半角数字のみであることを最終確認して送信)
     document.getElementById('add-ipad-btn').addEventListener('click', async () => {
         const idInput = document.getElementById('new-ipad-id').value.trim();
         const modelInput = document.getElementById('new-ipad-model').value.trim();
 
-        if (!idInput || !modelInput) {
-            alert("管理番号と型番の両方を入力してください。");
+        if (!/^[0-9]+$/.test(idInput)) {
+            alert("管理番号は【半角数字】のみで入力してください。");
+            return;
+        }
+        if (!modelInput) {
+            alert("型番を入力してください。");
             return;
         }
 
@@ -146,52 +196,40 @@
             });
             document.getElementById('new-ipad-id').value = "";
             document.getElementById('new-ipad-model').value = "";
-        } catch(e) {
-            alert("追加に失敗しました。");
+        } catch(e) { alert("追加に失敗しました。"); }
+    });
+
+    // 💡 新設：学生の学籍番号を管理者が強制的に書き換える救済処理
+    document.getElementById('fix-student-btn').addEventListener('click', async () => {
+        const uid = document.getElementById('student-uid').value.trim();
+        const newStudentId = document.getElementById('correct-student-id').value.trim();
+
+        if (!uid || !newStudentId) {
+            alert("UIDと新しい学籍番号の両方を正しく入力してください。");
+            return;
+        }
+
+        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？`)) {
+            try {
+                await setDoc(doc(db, "users", uid), { studentId: newStudentId }, { merge: true });
+                alert("学籍番号の書き換えが正常に完了しました。");
+                document.getElementById('student-uid').value = "";
+                document.getElementById('correct-student-id').value = "";
+            } catch(e) { alert("学生データの書き換えに失敗しました。UIDが正しいか確認してください。"); }
         }
     });
 
     // 端末の削除
     window.deleteIpad = async function(id) {
         if (!confirm(`【警告】No.${id} のiPadをデータベースから完全に削除しますか？`)) return;
-        try {
-            await deleteDoc(doc(db, "ipads", id));
-        } catch(e) {
-            alert("削除に失敗しました。");
-        }
+        try { await deleteDoc(doc(db, "ipads", id)); } catch(e) { alert("削除に失敗しました。"); }
     };
 
     // 強制返却処理
     window.forceReturn = async function(id) {
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
-        try {
-            await setDoc(doc(db, "ipads", id), {
-                status: "available",
-                borrowedBy: "",
-                returnedAt: new Date()
-            }, { merge: true });
-        } catch(e) {
-            alert("返却処理に失敗しました。");
-        }
+        try { await setDoc(doc(db, "ipads", id), { status: "available", borrowedBy: "" }, { merge: true }); } catch(e) { alert("返却処理に失敗しました。"); }
     };
-</script>
-<script>
-  // 💡 PWAサービスワーカーの登録
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // アップデートがあれば自動リロード
-              window.location.reload();
-            }
-          });
-        });
-      });
-    });
-  }
 </script>
 </body>
 </html>
