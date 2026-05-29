@@ -74,7 +74,7 @@
     const db = getFirestore(app);
     const tbody = document.getElementById('log-table-body');
 
-    // 💡 エラーの原因となるFirestore側でのソート指定を外し、標準のコレクション取得に変更
+    // 💡 修正点：エラーの原因となるFirestore側でのソート指定（orderBy）を完全に外し、シンプルなコレクション取得に変更（インデックス構築の待ちやエラーを100%回避します）
     onSnapshot(collection(db, "logs"), (snapshot) => {
         tbody.innerHTML = "";
         
@@ -83,20 +83,20 @@
             return;
         }
 
-        // 💡 取得したドキュメントデータを一旦配列に格納
+        // データを一旦配列に退避します
         const logEntries = [];
         snapshot.forEach((docSnap) => {
             logEntries.push(docSnap.data());
         });
 
-        // 💡 JavaScript側で「貸出日時の新しい順（降順）」に安全かつ確実にソートを実行（インデックスエラーを完全回避）
+        // 💡 データベースの代わりにJavaScript側で「貸出日時の新しい順（降順）」に安全に並び替えを実行します
         logEntries.sort((a, b) => {
             const timeA = a.borrowedAt ? a.borrowedAt.seconds : 0;
             const timeB = b.borrowedAt ? b.borrowedAt.seconds : 0;
             return timeB - timeA;
         });
 
-        // HTMLへ出力
+        // テーブルへ綺麗に出力
         logEntries.forEach((data) => {
             const row = document.createElement('tr');
             
