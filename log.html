@@ -34,7 +34,7 @@
     <h1>物品・機材 貸出返却履歴ログ</h1>
     
     <div class="nav-container">
-        <a href="./admin.html" class="back-btn">⬅️ データベース管理画面に戻る</a>
+        <a href="./admin.html" class="back-btn">データベース管理画面に戻る</a>
     </div>
     
     <table>
@@ -114,8 +114,8 @@
                     : `<span style="color:#aaa;">—</span>`;
                 
                 const statusHTML = data.status === "borrowed" 
-                    ? `<span class="badge badge-rent">🔴 使用中</span>` 
-                    : `<span class="badge badge-return">🟢 返却済</span>`;
+                    ? `<span class="badge badge-rent">使用中</span>` 
+                    : `<span class="badge badge-return">返却済</span>`;
 
                 row.innerHTML = `
                     <td><span class="badge ${catClass}">${catName}</span></td>
