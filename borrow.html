@@ -323,14 +323,24 @@
         } catch (e) { alert("貸出に失敗しました。"); }
     }
 
+    // 💡 borrow.html 内の handleReturn 関数を以下に丸ごと差し替えてください
     async function handleReturn(category, id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
-            await setDoc(doc(db, category, String(id)), { 
-                status: "available", 
-                borrowedBy: "", 
-                borrowedByName: "" 
-            }, { merge: true });
+            const docRef = doc(db, category, String(id));
+            const snap = await getDoc(docRef);
+            if (snap.exists() && snap.data().status === "borrowed") {
+                const currentData = snap.data();
+                // 💡 返却時に、直前の借用者情報と、今この瞬間の返却時刻(returnedAt)をクラウドへ刻印します
+                await setDoc(docRef, { 
+                    status: "available", 
+                    borrowedBy: "", 
+                    borrowedByName: "",
+                    returnedAt: new Date(),
+                    lastBorrowedBy: currentData.borrowedBy || "",
+                    lastBorrowedByName: currentData.borrowedByName || ""
+                }, { merge: true });
+            }
         } catch (e) { alert("返却に失敗しました。"); }
     }
 </script>
