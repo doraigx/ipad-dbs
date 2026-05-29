@@ -209,26 +209,33 @@
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    // 分離された2つのグリッドを描画するメイン関数
+    // 分離されたグリッドをマルチカテゴリ対応で結合描画するメイン関数
     function initSeparateIpadGrids() {
         const myGrid = document.getElementById('my-ipad-grid');
         const mainGrid = document.getElementById('ipad-grid');
 
-        onSnapshot(collection(db, "ipads"), (snapshot) => {
+        // 各コレクションの状態を同時に監視する
+        let cachedIpads = [];
+        let cachedOthers = [];
+
+        function syncRender() {
             myGrid.innerHTML = ""; 
             mainGrid.innerHTML = ""; 
 
-            const ipadList = [];
-            snapshot.forEach((docSnap) => {
-                ipadList.push({ id: docSnap.id, data: docSnap.data() });
-            });
-            ipadList.sort((a, b) => Number(a.id) - Number(b.id));
+            // 両方のキャッシュを統合した配列を作る
+            const combinedList = [];
+            cachedIpads.forEach(item => combinedList.push({ ...item, category: "ipads" }));
+            cachedOthers.forEach(item => combinedList.push({ ...item, category: "other_equipments" }));
+
+            // 管理番号（数値）の昇順で並び替える
+            combinedList.sort((a, b) => Number(a.id) - Number(b.id));
 
             let myBorrowCount = 0;
 
-            ipadList.forEach((item) => {
+            combinedList.forEach((item) => {
                 const id = item.id;
                 const data = item.data;
+                const cat = item.category;
                 const modelName = data.model || "iPad";
 
                 // 1. 自分が借りている端末（上の専用リストへ出力：オレンジ固定）
@@ -241,26 +248,24 @@
                         <div class="tile-model">${modelName}</div>
                         <div class="tile-info">🔄 タップして返却</div>
                     `;
-                    myTile.onclick = () => handleReturn(id);
+                    myTile.onclick = () => handleReturn(cat, id);
                     myGrid.appendChild(myTile);
                 }
 
                 // 2. 全体リスト（下の通常リストへ出力）
                 const mainTile = document.createElement('div');
-                mainTile.id = `main-ipad-${id}`;
+                mainTile.id = `main-${cat}-${id}`;
 
                 if (data.status === "borrowed") {
                     if (data.borrowedBy === myStudentId) {
-                        // 💡 自分が借りているものは下段でもオレンジ（my-borrowed）にする
                         mainTile.className = "ipad-tile my-borrowed";
                         mainTile.innerHTML = `
                             No.${id}
                             <div class="tile-model">${modelName}</div>
                             <div class="tile-info">🔄 あなたが使用中</div>
                         `;
-                        mainTile.onclick = () => handleReturn(id);
+                        mainTile.onclick = () => handleReturn(cat, id);
                     } else {
-                        // 💡 自分以外が借りているものは赤（borrowed）にする
                         mainTile.className = "ipad-tile borrowed";
                         mainTile.innerHTML = `
                             No.${id}
@@ -275,7 +280,7 @@
                         <div class="tile-model">${modelName}</div>
                         <div class="tile-info">🟢 貸出可能</div>
                     `;
-                    mainTile.onclick = () => handleBorrow(id, modelName);
+                    mainTile.onclick = () => handleBorrow(cat, id, modelName);
                 }
                 mainGrid.appendChild(mainTile);
             });
@@ -283,26 +288,46 @@
             if (myBorrowCount === 0) {
                 myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りているiPadはありません。</div>`;
             }
+        }
+
+        // iPadコレクションを監視
+        onSnapshot(collection(db, "ipads"), (snapshot) => {
+            cachedIpads = [];
+            snapshot.forEach(docSnap => cachedIpads.push({ id: docSnap.id, data: docSnap.data() }));
+            syncRender();
+        });
+
+        // その他機材コレクションを監視
+        onSnapshot(collection(db, "other_equipments"), (snapshot) => {
+            cachedOthers = [];
+            snapshot.forEach(docSnap => cachedOthers.push({ id: docSnap.id, data: docSnap.data() }));
+            syncRender();
         });
     }
 
-    // 💡 borrow.html 内の handleBorrow 関数を以下に差し替えてください
-    async function handleBorrow(id, model) {
+    // カテゴリ変数を連動させた共通貸出ロジック（名前の送信付き）
+    async function handleBorrow(category, id, model) {
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
         try {
-            await setDoc(doc(db, "ipads", String(id)), {
+            await setDoc(doc(db, category, String(id)), {
                 status: "borrowed",
                 borrowedBy: myStudentId,
-                borrowedByName: myCustomName, // 💡 ここで自分の設定した名前も一緒にクラウドへ送信します
+                borrowedByName: myCustomName, 
                 borrowedAt: new Date()
             }, { merge: true });
         } catch (e) { alert("貸出に失敗しました。"); }
     }
-    async function handleReturn(id) {
+
+    // カテゴリ変数を連動させた共通返却ロジック
+    async function handleReturn(category, id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
-            await setDoc(doc(db, "ipads", String(id)), { status: "available", borrowedBy: "", returnedAt: new Date() }, { merge: true });
+            await setDoc(doc(db, category, String(id)), { 
+                status: "available", 
+                borrowedBy: "", 
+                borrowedByName: "" 
+            }, { merge: true });
         } catch (e) { alert("返却に失敗しました。"); }
     }
 </script>
