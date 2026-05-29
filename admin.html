@@ -3,132 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機材貸出システム - 管理者画面</title>
+    <title>iPad貸出システム - 利用者</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 30px 20px; box-sizing: border-box; }
-        .container { width: 100%; max-width: 100%; margin: 0 auto; }
+        :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 630px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
+        h2 { font-size: 1.3rem; margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid #2196f3; }
+        h3 { font-size: 1rem; color: #aaa; margin-top: 15px; margin-bottom: 5px; padding-left: 5px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
         
-        h1 { text-align: center; margin-bottom: 25px; color: #2196f3; font-size: 2.2rem; }
-        h2 { font-size: 1.5rem; margin-top: 40px; color: #555; border-left: 6px solid #2196f3; padding-left: 15px; margin-bottom: 15px; }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; }
+        button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
-        .search-container { background: #e3f2fd; border: 2px solid #2196f3; padding: 15px 25px; border-radius: 12px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; }
-        .search-container label { font-weight: bold; color: #0d47a1; font-size: 1.1rem; white-space: nowrap; }
-        .search-input { flex: 1; padding: 12px 18px; border: 1px solid #bbdefb; border-radius: 8px; font-size: 1.1rem; background: white; }
+        .block-btn { width: 100%; padding: 12px; margin-top: 8px; font-size: 0.95rem; display: block; box-sizing: border-box; }
+        .logout-btn { background: #ff5722; color: white; margin-top: 15px; }
+        .logout-btn:hover { background: #e64a19; }
 
-        .admin-form { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 35px; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
-        .form-group label { font-size: 0.95rem; font-weight: bold; color: #555; }
-        .form-group input, .form-group select { padding: 14px; border: 1px solid #ccc; border-radius: 8px; font-size: 1.1rem; background: white; height: 53px; box-sizing: border-box; }
-        .add-btn { padding: 14px 40px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.2s; height: 53px; }
-        .add-btn:hover { background: #1976d2; }
+        .profile-section { display: flex; flex-direction: column; gap: 4px; }
+        .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 10px; font-size: 1.15rem; margin-bottom: 30px; }
-        th, td { padding: 20px 24px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
-        th { background-color: #2196f3; color: white; font-weight: bold; font-size: 1.2rem; letter-spacing: 0.5px; }
+        /* 1つの大きな蛇腹（アコーディオン）メニューのスタイル */
+        .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
+        .accordion-trigger { background: #252525; padding: 12px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
+        .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
+        .accordion-trigger::after { content: '▼'; font-size: 0.7rem; transition: transform 0.2s; }
+        .accordion-item.open .accordion-trigger::after { transform: rotate(180deg); }
+        .accordion-content { background: #0f0f0f; overflow: hidden; transition: max-height 0.2s ease-out; }
         
-        .status-badge { padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.95rem; color: white; display: inline-block; }
-        .status-ok { background: #4caf50; }
-        .status-ng { background: #f44336; }
-        tr:hover { background-color: #f4f9ff; } 
-        
-        .editable-model { cursor: pointer; padding: 8px 14px; border-radius: 6px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #bbb; display: block; width: 95%; box-sizing: border-box; font-weight: 500; }
-        .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
-        .model-edit-input { padding: 8px 14px; font-size: 1.15rem; border: 2px solid #2196f3; border-radius: 6px; width: 95%; box-sizing: border-box; }
+        /* 蛇腹の中のレイアウト構造 */
+        .accordion-inner { padding: 18px; display: flex; flex-direction: column; gap: 20px; }
+        .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
-        .button-container { display: flex; gap: 8px; align-items: center; }
-        .action-btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; white-space: nowrap; }
-        .return-btn { background: #e0e0e0; color: #333; }
-        .return-btn:hover { background: #ddd; }
-        .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
-        .delete-btn:hover { background: #cc0000; }
+        /* グリッドレイアウト */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
+        .ipad-tile { height: 115px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
+        .ipad-tile:hover { transform: translateY(-3px); }
         
-        .danger-zone { background: #fff3f3; border: 1px solid #ffcdd2; }
-        .danger-btn { background: #d32f2f; color: white; }
-        .danger-btn:hover { background: #b71c1c; }
+        .available { background: #4caf50; color: white; } 
+        .borrowed { background: #f44336; color: white; }  
+        .my-borrowed { background: #ff9800; color: white; } 
         
-        .hint-text { font-size: 0.95rem; color: #666; margin-bottom: 12px; padding-left: 5px; }
+        .tile-info { font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        
+        /* 機材名が長い場合に最大2行で綺麗に折り返すためのCSS設定 */
+        .tile-model { 
+            font-size: 0.65rem; 
+            opacity: 0.9; 
+            font-weight: normal; 
+            width: 100%;
+            word-break: break-all; 
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+            max-height: 2.4em;
+            margin: auto 0; 
+        }
+        
+        /* 空白時のメッセージ */
+        .empty-message { grid-column: 1 / -1; background: #1e1e1e; color: #666; text-align: center; padding: 20px; border-radius: 8px; font-size: 0.9rem; border: 1px dashed #333; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📊 iPad 貸出管理データベース (管理者フルワイド)</h1>
-    
-    <div class="search-container">
-        <label for="search-box">🔍 機種名・借用者検索：</label>
-        <input type="text" id="search-box" class="search-input" placeholder="管理番号、型番・機種名、学籍番号、借りている人の名前でリアルタイムに絞り込み...">
+    <h1>📱 iPad 貸出リスト</h1>
+
+    <div class="card" id="auth-section">
+        <p id="user-info">ユーザー情報を読み込み中...</p>
     </div>
 
-    <div class="admin-form">
-        <div class="form-group" style="flex: 0.5; min-width: 150px;">
-            <label for="new-item-category">カテゴリ</label>
-            <select id="new-item-category">
-                <option value="ipads">iPad製品</option>
-                <option value="other_equipments">その他機材</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="new-item-id">管理番号 (💡半角数字のみ)</label>
-            <input type="text" id="new-item-id" placeholder="例: 11" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-        </div>
-        <div class="form-group">
-            <label for="new-item-model">型番・モデル名</label>
-            <input type="text" id="new-item-model" placeholder="例: iPad Air (第6世代)">
-        </div>
-        <button class="add-btn" id="add-item-btn">➕ 新しいiPadを追加</button>
-    </div>
-    
-    <p class="hint-text">💡 <b>型番/モデル名</b> を変更したい場合は、該当箇所を<b>ダブルクリック</b>するとその場で編集できます（Enterで保存）。</p>
-    
-    <h2>iPad製品 一覧</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 10%;">管理番号</th>
-                <th style="width: 30%;">型番 / モデル名 (ダブルクリックで編集)</th>
-                <th style="width: 13%;">現在の状態</th>
-                <th style="width: 12%;">学籍番号</th>
-                <th style="width: 12%;">氏名</th>
-                <th style="width: 12%;">貸出日時</th>
-                <th style="width: 11%;">操作</th>
-            </tr>
-        </thead>
-        <tbody id="ipad-table-body"></tbody>
-    </table>
+    <h2>借りているiPad</h2>
+    <h3>iPad製品</h3>
+    <div class="grid" id="my-ipad-grid"></div>
+    <h3>その他機材</h3>
+    <div class="grid" id="my-other-grid"></div>
 
-    <h2>その他機材 一覧</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 10%;">管理番号</th>
-                <th style="width: 30%;">型番 / モデル名 (ダブルクリックで編集)</th>
-                <th style="width: 13%;">現在の状態</th>
-                <th style="width: 12%;">学籍番号</th>
-                <th style="width: 12%;">氏名</th>
-                <th style="width: 12%;">貸出日時</th>
-                <th style="width: 11%;">操作</th>
-            </tr>
-        </thead>
-        <tbody id="other-table-body"></tbody>
-    </table>
-
-    <h2>👤 学生データ管理・修正（学籍番号の変更）</h2>
-    <div class="admin-form danger-zone">
-        <div class="form-group">
-            <label for="student-uid">対象学生のGoogle UID</label>
-            <input type="text" id="student-uid" placeholder="例: AIzaSyBCNywQ... (学生から申告されたUID)">
-        </div>
-        <div class="form-group">
-            <label for="correct-student-id">修正後の正しい学籍番号</label>
-            <input type="text" id="correct-student-id" placeholder="例: B260001">
-        </div>
-        <button class="add-btn danger-btn" id="fix-student-btn">🛠️ 学籍番号を強制書き換え</button>
-    </div>
+    <h2>貸出・返却</h2>
+    <h3>iPad製品 一覧</h3>
+    <div class="grid" id="ipad-grid"></div>
+    <h3>その他機材 一覧</h3>
+    <div class="grid" id="other-grid"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query, updateDoc, getDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -141,214 +107,266 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
-    
-    let rawIpadsData = [];
-    let rawOthersData = [];
+    const provider = new GoogleAuthProvider();
 
-    document.getElementById('search-box').addEventListener('input', applyFilter);
+    let myStudentId = "";
+    let myCustomName = "";
 
-    onSnapshot(query(collection(db, "ipads")), (snapshot) => {
-        rawIpadsData = [];
-        snapshot.forEach(d => rawIpadsData.push({ id: d.id, ...d.data() }));
-        rawIpadsData.sort((a,b) => Number(a.id) - Number(b.id));
-        applyFilter();
-    });
+    // 🔒 認証状態監視
+    onAuthStateChanged(auth, async (user) => {
+        const authSection = document.getElementById('auth-section');
+        if (!user) {
+            authSection.innerHTML = `<p style="text-align:center;"><button id="login-btn">Googleログインして利用開始</button></p>`;
+            document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
+        } else {
+            onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                let idInputHTML = "";
+                let nameInputVal = user.displayName;
 
-    onSnapshot(query(collection(db, "other_equipments")), (snapshot) => {
-        rawOthersData = [];
-        snapshot.forEach(d => rawOthersData.push({ id: d.id, ...d.data() }));
-        rawOthersData.sort((a,b) => Number(a.id) - Number(b.id));
-        applyFilter();
-    });
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    myStudentId = data.studentId || "";
+                    myCustomName = data.customName || user.displayName;
+                    nameInputVal = myCustomName;
+                }
 
-    function applyFilter() {
-        const keyword = document.getElementById('search-box').value.trim().toLowerCase();
-        renderTable("ipads", rawIpadsData, keyword, "ipad-table-body");
-        renderTable("other_equipments", rawOthersData, keyword, "other-table-body");
-    }
+                if (!myStudentId) {
+                    idInputHTML = `
+                        <div class="info-row">⚠️ 学籍番号が登録されていません：</div>
+                        <div class="input-group">
+                            <input type="text" id="student-id-input" placeholder="例: B260000">
+                            <button id="save-profile-btn">登録確定</button>
+                        </div>
+                    `;
+                } else {
+                    idInputHTML = `
+                        <div class="info-row">🔑 学籍番号: <strong>${myStudentId}</strong> <span style="font-size:0.75rem; color:#888;">(※変更不可)</span></div>
+                        
+                        <div class="accordion-item" id="profile-accordion">
+                            <div class="accordion-trigger" onclick="window.toggleAccordion('profile-accordion')">🔧 登録情報の編集・確認</div>
+                            <div class="accordion-content" style="max-height: 0px;">
+                                <div class="accordion-inner">
+                                    
+                                    <div>
+                                        <div class="sub-section-title">👤 本名・表示名の変更</div>
+                                        <input type="text" id="custom-name-input" value="${nameInputVal}" style="width:100%; margin-top:10px; box-sizing:border-box;">
+                                        <button id="update-name-btn" class="block-btn">名前の変更を保存する</button>
+                                    </div>
 
-    function renderTable(category, dataList, filterWord, tbodyId) {
-        const tbody = document.getElementById(tbodyId);
-        tbody.innerHTML = "";
+                                    <div>
+                                        <div class="sub-section-title">⚙️ 管理者問い合わせ用ID</div>
+                                        <div class="uid-text">${user.uid}</div>
+                                    </div>
 
-        dataList.forEach((item) => {
-            const id = item.id;
-            const model = item.model || "未設定";
-            const status = item.status || "available";
-            const borrowedBy = item.borrowedBy || "";
-            const borrowedByName = item.borrowedByName || "";
-            
-            if (filterWord) {
-                const matchId = id.toLowerCase().includes(filterWord);
-                const matchModel = model.toLowerCase().includes(filterWord);
-                const matchUser = borrowedBy.toLowerCase().includes(filterWord);
-                const matchName = borrowedByName.toLowerCase().includes(filterWord);
-                if (!matchId && !matchModel && !matchUser && !matchName) return; 
-            }
+                                    <div>
+                                        <div class="sub-section-title">🚪 認証セッション</div>
+                                        <button id="logout-btn" class="block-btn logout-btn">システムからログアウト</button>
+                                    </div>
 
-            const row = document.createElement('tr');
-            let statusHTML = `<span class="status-badge status-ok">🟢 貸出可能</span>`;
-            let userHTML = `<span style="color: #aaa;">—</span>`;
-            let nameHTML = `<span style="color: #aaa;">—</span>`;
-            let dateHTML = `<span style="color: #aaa;">—</span>`;
-            
-            let actionHTML = `
-                <div class="button-container">
-                    <button class="action-btn delete-btn" onclick="window.deleteItem('${category}', '${id}')">削除</button>
-                </div>
-            `;
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
 
-            if (status === "borrowed") {
-                const dateStr = item.borrowedAt ? new Date(item.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-                statusHTML = `<span class="status-badge status-ng">🔴 貸出中</span>`;
-                userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:6px 12px; border-radius:4px;">${borrowedBy}</mark>`;
-                nameHTML = `<strong>${borrowedByName}</strong>`;
-                dateHTML = dateStr;
-                
-                actionHTML = `
-                    <div class="button-container">
-                        <button class="action-btn return-btn" onclick="window.forceReturn('${category}', '${id}')">返却</button>
-                        <button class="action-btn delete-btn" onclick="window.deleteItem('${category}', '${id}')">削除</button>
+                authSection.innerHTML = `
+                    <div class="profile-section">
+                        <div class="info-row" style="font-size:1.1rem; margin-bottom: 5px;">👋 こんにちは、<strong>${nameInputVal}</strong> さん</div>
+                        ${idInputHTML}
                     </div>
                 `;
-            }
 
-            row.innerHTML = `
-                <td><strong>No.${id}</strong></td>
-                <td><div class="editable-model" ondblclick="window.startEditModel('${category}', '${id}', this)">${model}</div></td>
-                <td>${statusHTML}</td>
-                <td>${userHTML}</td>
-                <td>${nameHTML}</td>
-                <td style="font-size:1rem; font-weight:500;">${dateHTML}</td>
-                <td>${actionHTML}</td>
-            `;
-            tbody.appendChild(row);
+                document.getElementById('save-profile-btn')?.addEventListener('click', saveNewStudentId);
+                document.getElementById('update-name-btn')?.addEventListener('click', updateCustomName);
+                document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+                
+                if (myStudentId) {
+                    // 💡 関数の共有をやめ、完全に個別ルートで処理を開始させて競合をブロック
+                    initIpadGrid();
+                    initOtherGrid();
+                }
+            });
+        }
+    });
+
+    // 蛇腹開閉
+    window.toggleAccordion = function(id) {
+        const accordion = document.getElementById(id);
+        const content = accordion.querySelector('.accordion-content');
+        if (accordion.classList.contains('open')) {
+            accordion.classList.remove('open');
+            content.style.maxHeight = '0px';
+        } else {
+            accordion.classList.add('open');
+            content.style.maxHeight = content.scrollHeight + 'px'; 
+        }
+    };
+
+    async function saveNewStudentId() {
+        const idInput = document.getElementById('student-id-input').value.trim();
+        if (!idInput) return alert("学籍番号を入力してください");
+        try {
+            await setDoc(doc(db, "users", auth.currentUser.uid), { studentId: idInput, customName: auth.currentUser.displayName }, { merge: true });
+            alert("学籍番号を紐付けました！");
+        } catch(e) { alert("登録に失敗しました。"); }
+    }
+
+    async function updateCustomName() {
+        const newName = document.getElementById('custom-name-input').value.trim();
+        if (!newName) return alert("名前を空欄にすることはできません。");
+        try {
+            await setDoc(doc(db, "users", auth.currentUser.uid), { customName: newName }, { merge: true });
+            alert("表示名を変更しました。");
+            window.toggleAccordion('profile-accordion');
+        } catch(e) { alert("名前の変更に失敗しました。"); }
+    }
+
+    async function handleLogout() {
+        if (!confirm("システムからログアウトしますか？")) return;
+        try {
+            await signOut(auth);
+            alert("ログアウトしました。ログイン画面に戻ります。");
+            window.location.replace("./login.html");
+        } catch(e) { alert("ログアウトに失敗しました。"); }
+    }
+
+    // 💡 ① iPad製品専用の読み込み・描画ロジック
+    function initIpadGrid() {
+        const myGrid = document.getElementById('my-ipad-grid');
+        const mainGrid = document.getElementById('ipad-grid');
+
+        onSnapshot(collection(db, "ipads"), (snapshot) => {
+            myGrid.innerHTML = ""; 
+            mainGrid.innerHTML = ""; 
+
+            const itemList = [];
+            snapshot.forEach((docSnap) => { itemList.push({ id: docSnap.id, data: docSnap.data() }); });
+            itemList.sort((a, b) => Number(a.id) - Number(b.id));
+
+            let myBorrowCount = 0;
+
+            itemList.forEach((item) => {
+                const id = item.id;
+                const data = item.data;
+                const modelName = data.model || "iPad";
+
+                if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
+                    myBorrowCount++;
+                    const myTile = document.createElement('div');
+                    myTile.id = `my-tile-ipads-${id}`;
+                    myTile.className = "ipad-tile my-borrowed";
+                    myTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔄 返却</div>`;
+                    myTile.onclick = () => handleReturn("ipads", id);
+                    myGrid.appendChild(myTile);
+                }
+
+                const mainTile = document.createElement('div');
+                mainTile.id = `main-tile-ipads-${id}`;
+
+                if (data.status === "borrowed") {
+                    if (data.borrowedBy === myStudentId) {
+                        mainTile.className = "ipad-tile my-borrowed";
+                        mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔄 使用中</div>`;
+                        mainTile.onclick = () => handleReturn("ipads", id);
+                    } else {
+                        mainTile.className = "ipad-tile borrowed";
+                        mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔴 貸出不可</div>`;
+                    }
+                } else {
+                    mainTile.className = "ipad-tile available";
+                    mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🟢 貸出可能</div>`;
+                    mainTile.onclick = () => handleBorrow("ipads", id, modelName);
+                }
+                mainGrid.appendChild(mainTile);
+            });
+
+            if (myBorrowCount === 0) {
+                myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りているiPadはありません。</div>`;
+            }
         });
     }
 
-    window.startEditModel = function(category, id, element) {
-        const currentText = element.innerText;
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'model-edit-input';
-        input.value = currentText;
-        element.parentNode.replaceChild(input, element);
-        input.focus();
+    // 💡 ② その他機材専用の読み込み・描画ロジック
+    function initOtherGrid() {
+        const myGrid = document.getElementById('my-other-grid');
+        const mainGrid = document.getElementById('other-grid');
 
-        async function saveChanges() {
-            const newModelName = input.value.trim();
-            if (newModelName && newModelName !== currentText) {
-                try {
-                    await updateDoc(doc(db, category, id), { model: newModelName });
-                } catch(e) { alert("名前の変更に失敗しました。"); }
-            } else {
-                applyFilter();
-            }
-        }
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveChanges(); });
-        input.addEventListener('blur', saveChanges);
-    };
+        onSnapshot(collection(db, "other_equipments"), (snapshot) => {
+            myGrid.innerHTML = ""; 
+            mainGrid.innerHTML = ""; 
 
-    // 💡 新規登録時の重複防止ガードロジック
-    document.getElementById('add-item-btn').addEventListener('click', async () => {
-        const category = document.getElementById('new-item-category').value;
-        const idInput = document.getElementById('new-item-id').value.trim();
-        const modelInput = document.getElementById('new-item-model').value.trim();
+            const itemList = [];
+            snapshot.forEach((docSnap) => { itemList.push({ id: docSnap.id, data: docSnap.data() }); });
+            itemList.sort((a, b) => Number(a.id) - Number(b.id));
 
-        if (!/^[0-9]+$/.test(idInput)) {
-            alert("管理番号は【半角数字】のみで入力してください。");
-            return;
-        }
-        if (!modelInput) {
-            alert("型番を入力してください。");
-            return;
-        }
+            let myBorrowCount = 0;
 
-        try {
-            // 💡 1. 登録しようとしているIDがすでに存在しているか事前スキャン
-            const docRef = doc(db, category, idInput);
-            const docSnap = await getDoc(docRef);
+            itemList.forEach((item) => {
+                const id = item.id;
+                const data = item.data;
+                const modelName = data.model || "機材";
 
-            if (docSnap.exists()) {
-                // 💡 2. 存在した場合は上書きを防止するために処理を強制終了して弾く
-                const catName = category === "ipads" ? "iPad製品" : "その他機材";
-                alert(`【重複エラー】管理番号 No.${idInput} は、すでに${catName}に登録されています。\n別の空いている番号で登録してください。`);
-                return;
-            }
-
-            // 3. 重複がなければ安全に登録を実行
-            await setDoc(docRef, {
-                model: modelInput,
-                status: "available",
-                borrowedBy: "",
-                borrowedByName: "", 
-                createdAt: new Date()
-            });
-            document.getElementById('new-item-id').value = "";
-            document.getElementById('new-item-model').value = "";
-        } catch(e) { alert("追加に失敗しました。"); }
-    });
-
-    document.getElementById('fix-student-btn').addEventListener('click', async () => {
-        const uid = document.getElementById('student-uid').value.trim();
-        const newStudentId = document.getElementById('correct-student-id').value.trim();
-
-        if (!uid || !newStudentId) {
-            alert("UIDと新しい学籍番号の両方を正しく入力してください。");
-            return;
-        }
-
-        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（現在貸出中のiPadがある場合はそれらも自動更新されます）`)) {
-            try {
-                const userDocRef = doc(db, "users", uid);
-                const userSnap = await getDoc(userDocRef);
-                
-                let oldStudentId = "";
-                let studentName = "";
-                if (userSnap.exists()) {
-                    oldStudentId = userSnap.data().studentId || "";
-                    studentName = userSnap.data().customName || ""; 
+                if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
+                    myBorrowCount++;
+                    const myTile = document.createElement('div');
+                    myTile.id = `my-tile-others-${id}`;
+                    myTile.className = "ipad-tile my-borrowed";
+                    myTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔄 返却</div>`;
+                    myTile.onclick = () => handleReturn("other_equipments", id);
+                    myGrid.appendChild(myTile);
                 }
 
-                await setDoc(userDocRef, { studentId: newStudentId }, { merge: true });
+                const mainTile = document.createElement('div');
+                mainTile.id = `main-tile-others-${id}`;
 
-                if (oldStudentId) {
-                    for (const cat of ["ipads", "other_equipments"]) {
-                        const q = query(collection(db, cat), where("borrowedBy", "==", oldStudentId), where("status", "==", "borrowed"));
-                        const querySnapshot = await getDocs(q);
-                        
-                        const promises = [];
-                        querySnapshot.forEach((itemDoc) => {
-                            const docRef = doc(db, cat, itemDoc.id);
-                            promises.push(updateDoc(docRef, { 
-                                borrowedBy: newStudentId,
-                                borrowedByName: studentName
-                            }));
-                        });
-                        await Promise.all(promises);
+                if (data.status === "borrowed") {
+                    if (data.borrowedBy === myStudentId) {
+                        mainTile.className = "ipad-tile my-borrowed";
+                        mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔄 使用中</div>`;
+                        mainTile.onclick = () => handleReturn("other_equipments", id);
+                    } else {
+                        mainTile.className = "ipad-tile borrowed";
+                        mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🔴 貸出不可</div>`;
                     }
+                } else {
+                    mainTile.className = "ipad-tile available";
+                    mainTile.innerHTML = `<div>No.${id}</div><div class="tile-model">${modelName}</div><div class="tile-info">🟢 貸出可能</div>`;
+                    mainTile.onclick = () => handleBorrow("other_equipments", id, modelName);
                 }
+                mainGrid.appendChild(mainTile);
+            });
 
-                alert("学籍番号、および貸出中iPadデータの紐付け変更がすべて正常に完了しました！");
-                document.getElementById('student-uid').value = "";
-                document.getElementById('correct-student-id').value = "";
-            } catch(e) { 
-                console.error(e);
-                alert("データの書き換えに失敗しました。"); 
+            if (myBorrowCount === 0) {
+                myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りている機材はありません。</div>`;
             }
-        }
-    });
+        });
+    }
 
-    window.deleteItem = async function(category, id) {
-        if (!confirm(`【警告】No.${id} をデータベースから完全に削除しますか？`)) return;
-        try { await deleteDoc(doc(db, category, id)); } catch(e) { alert("削除に失敗しました。"); }
-    };
+    async function handleBorrow(category, id, model) {
+        if (!myStudentId) return;
+        if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
+        try {
+            await setDoc(doc(db, category, String(id)), {
+                status: "borrowed",
+                borrowedBy: myStudentId,
+                borrowedByName: myCustomName, 
+                borrowedAt: new Date()
+            }, { merge: true });
+        } catch (e) { alert("貸出に失敗しました。"); }
+    }
 
-    window.forceReturn = async function(category, id) {
-        if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
-        try { await setDoc(doc(db, category, id), { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true }); } catch(e) { alert("返却処理に失敗しました。"); }
-    };
+    async function handleReturn(category, id) {
+        if (!confirm(`No.${id} を返却しますか？`)) return;
+        try {
+            await setDoc(doc(db, category, String(id)), { 
+                status: "available", 
+                borrowedBy: "", 
+                borrowedByName: "" 
+            }, { merge: true });
+        } catch (e) { alert("返却に失敗しました。"); }
+    }
 </script>
 </body>
 </html>
