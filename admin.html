@@ -6,16 +6,12 @@
     <title>機材貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 💡 画面全体の余白をなくし、フルスクリーン対応にする */
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 30px 20px; box-sizing: border-box; }
-        
-        /* 💡 横幅を100%に広げ、最大幅の制限を解除（フルワイド） */
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
         
         h1 { text-align: center; margin-bottom: 25px; color: #2196f3; font-size: 2.2rem; }
         h2 { font-size: 1.5rem; margin-top: 40px; color: #555; border-left: 6px solid #2196f3; padding-left: 15px; margin-bottom: 15px; }
         
-        /* 💡 新設：検索バーのスタイル */
         .search-container { background: #e3f2fd; border: 2px solid #2196f3; padding: 15px 25px; border-radius: 12px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; }
         .search-container label { font-weight: bold; color: #0d47a1; font-size: 1.1rem; white-space: nowrap; }
         .search-input { flex: 1; padding: 12px 18px; border: 1px solid #bbdefb; border-radius: 8px; font-size: 1.1rem; background: white; }
@@ -27,10 +23,7 @@
         .add-btn { padding: 14px 40px; background: #2196f3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.2s; height: 53px; }
         .add-btn:hover { background: #1976d2; }
 
-        /* 💡 テーブルを画面端から端までワイドに拡張 */
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 10px; font-size: 1.15rem; margin-bottom: 30px; }
-        
-        /* 💡 パディングをさらに広げ、1行ずつの視認性と迫力を極限まで高める */
         th, td { padding: 20px 24px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 1.2rem; letter-spacing: 0.5px; }
         
@@ -39,12 +32,10 @@
         .status-ng { background: #f44336; }
         tr:hover { background-color: #f4f9ff; } 
         
-        /* 💡 編集用インプット周りも幅広に最適化（横幅比率を調整） */
         .editable-model { cursor: pointer; padding: 8px 14px; border-radius: 6px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #bbb; display: block; width: 95%; box-sizing: border-box; font-weight: 500; }
         .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
         .model-edit-input { padding: 8px 14px; font-size: 1.15rem; border: 2px solid #2196f3; border-radius: 6px; width: 95%; box-sizing: border-box; }
 
-        /* 💡 ボタンの横並び崩れを完全に防ぐフレックスコンテナ */
         .button-container { display: flex; gap: 8px; align-items: center; }
         .action-btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; white-space: nowrap; }
         .return-btn { background: #e0e0e0; color: #333; }
@@ -61,7 +52,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>📊 物品・機材 貸出管理データベース</h1>
+    <h1>📊 iPad 貸出管理データベース (管理者フルワイド)</h1>
     
     <div class="search-container">
         <label for="search-box">🔍 機種名・借用者検索：</label>
@@ -72,8 +63,8 @@
         <div class="form-group" style="flex: 0.5; min-width: 150px;">
             <label for="new-item-category">カテゴリ</label>
             <select id="new-item-category">
-                <option value="ipads">📱 iPad製品</option>
-                <option value="other_equipments">🎥 その他機材</option>
+                <option value="ipads">iPad製品</option>
+                <option value="other_equipments">その他機材</option>
             </select>
         </div>
         <div class="form-group">
@@ -81,15 +72,15 @@
             <input type="text" id="new-item-id" placeholder="例: 11" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <div class="form-group">
-            <label for="new-item-model">型番・機種名</label>
-            <input type="text" id="new-item-model" placeholder="例: iPad Air、プロジェクターなど">
+            <label for="new-item-model">型番・モデル名</label>
+            <input type="text" id="new-item-model" placeholder="例: iPad Air (第6世代)">
         </div>
-        <button class="add-btn" id="add-item-btn">➕ 新規登録を追加</button>
+        <button class="add-btn" id="add-item-btn">➕ 新しいiPadを追加</button>
     </div>
     
-    <p class="hint-text">💡 <b>型番/機種名</b> を変更したい場合は、該当箇所を<b>ダブルクリック</b>するとその場で編集できます（Enterで保存）。</p>
+    <p class="hint-text">💡 <b>型番/モデル名</b> を変更したい場合は、該当箇所を<b>ダブルクリック</b>するとその場で編集できます（Enterで保存）。</p>
     
-    <h2>📱 iPad 貸出管理状況</h2>
+    <h2>iPad製品 一覧</h2>
     <table>
         <thead>
             <tr>
@@ -105,12 +96,12 @@
         <tbody id="ipad-table-body"></tbody>
     </table>
 
-    <h2>🎥 その他機材 貸出管理状況</h2>
+    <h2>その他機材 一覧</h2>
     <table>
         <thead>
             <tr>
                 <th style="width: 10%;">管理番号</th>
-                <th style="width: 30%;">機材名 / 詳細 (ダブルクリックで編集)</th>
+                <th style="width: 30%;">型番 / モデル名 (ダブルクリックで編集)</th>
                 <th style="width: 13%;">現在の状態</th>
                 <th style="width: 12%;">学籍番号</th>
                 <th style="width: 12%;">氏名</th>
@@ -152,14 +143,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // 💡 リアルタイム検索フィルター用の全データ保持キャッシュ配列
     let rawIpadsData = [];
     let rawOthersData = [];
 
-    // 検索窓に文字が入力されたら即時フィルターを実行
     document.getElementById('search-box').addEventListener('input', applyFilter);
 
-    // ① iPadコレクションのリアルタイム監視
     onSnapshot(query(collection(db, "ipads")), (snapshot) => {
         rawIpadsData = [];
         snapshot.forEach(d => rawIpadsData.push({ id: d.id, ...d.data() }));
@@ -167,7 +155,6 @@
         applyFilter();
     });
 
-    // ② その他機材コレクションのリアルタイム監視
     onSnapshot(query(collection(db, "other_equipments")), (snapshot) => {
         rawOthersData = [];
         snapshot.forEach(d => rawOthersData.push({ id: d.id, ...d.data() }));
@@ -175,15 +162,12 @@
         applyFilter();
     });
 
-    // 💡 横断検索フィルター処理本体
     function applyFilter() {
         const keyword = document.getElementById('search-box').value.trim().toLowerCase();
-        
         renderTable("ipads", rawIpadsData, keyword, "ipad-table-body");
         renderTable("other_equipments", rawOthersData, keyword, "other-table-body");
     }
 
-    // テーブル生成および絞り込み描画処理
     function renderTable(category, dataList, filterWord, tbodyId) {
         const tbody = document.getElementById(tbodyId);
         tbody.innerHTML = "";
@@ -195,7 +179,6 @@
             const borrowedBy = item.borrowedBy || "";
             const borrowedByName = item.borrowedByName || "";
             
-            // 💡 検索キーワードの判定（管理番号、機種名、学籍番号、氏名）
             if (filterWord) {
                 const matchId = id.toLowerCase().includes(filterWord);
                 const matchModel = model.toLowerCase().includes(filterWord);
@@ -244,7 +227,6 @@
         });
     }
 
-    // 機種名のインラインダブルクリック編集
     window.startEditModel = function(category, id, element) {
         const currentText = element.innerText;
         const input = document.createElement('input');
@@ -268,7 +250,7 @@
         input.addEventListener('blur', saveChanges);
     };
 
-    // 新規登録アイテムの追加
+    // 💡 新規登録時の重複防止ガードロジック
     document.getElementById('add-item-btn').addEventListener('click', async () => {
         const category = document.getElementById('new-item-category').value;
         const idInput = document.getElementById('new-item-id').value.trim();
@@ -279,12 +261,24 @@
             return;
         }
         if (!modelInput) {
-            alert("型番・機種名を入力してください。");
+            alert("型番を入力してください。");
             return;
         }
 
         try {
-            await setDoc(doc(db, category, idInput), {
+            // 💡 1. 登録しようとしているIDがすでに存在しているか事前スキャン
+            const docRef = doc(db, category, idInput);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                // 💡 2. 存在した場合は上書きを防止するために処理を強制終了して弾く
+                const catName = category === "ipads" ? "iPad製品" : "その他機材";
+                alert(`【重複エラー】管理番号 No.${idInput} は、すでに${catName}に登録されています。\n別の空いている番号で登録してください。`);
+                return;
+            }
+
+            // 3. 重複がなければ安全に登録を実行
+            await setDoc(docRef, {
                 model: modelInput,
                 status: "available",
                 borrowedBy: "",
@@ -296,7 +290,6 @@
         } catch(e) { alert("追加に失敗しました。"); }
     });
 
-    // 学籍番号の強制書き換え（2つの機材コレクションを両方串刺しで一括連動アップデート）
     document.getElementById('fix-student-btn').addEventListener('click', async () => {
         const uid = document.getElementById('student-uid').value.trim();
         const newStudentId = document.getElementById('correct-student-id').value.trim();
@@ -306,7 +299,7 @@
             return;
         }
 
-        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（すべてのカテゴリで現在貸出中の機材データも連動更新されます）`)) {
+        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（現在貸出中のiPadがある場合はそれらも自動更新されます）`)) {
             try {
                 const userDocRef = doc(db, "users", uid);
                 const userSnap = await getDoc(userDocRef);
@@ -321,7 +314,6 @@
                 await setDoc(userDocRef, { studentId: newStudentId }, { merge: true });
 
                 if (oldStudentId) {
-                    // ipads と other_equipments の両方のコレクションをスキャンして書き換え
                     for (const cat of ["ipads", "other_equipments"]) {
                         const q = query(collection(db, cat), where("borrowedBy", "==", oldStudentId), where("status", "==", "borrowed"));
                         const querySnapshot = await getDocs(q);
@@ -338,7 +330,7 @@
                     }
                 }
 
-                alert("学籍番号、およびすべての貸出中機材データの紐付け変更が正常に完了しました！");
+                alert("学籍番号、および貸出中iPadデータの紐付け変更がすべて正常に完了しました！");
                 document.getElementById('student-uid').value = "";
                 document.getElementById('correct-student-id').value = "";
             } catch(e) { 
@@ -348,13 +340,11 @@
         }
     });
 
-    // 登録アイテムの消去
     window.deleteItem = async function(category, id) {
         if (!confirm(`【警告】No.${id} をデータベースから完全に削除しますか？`)) return;
         try { await deleteDoc(doc(db, category, id)); } catch(e) { alert("削除に失敗しました。"); }
     };
 
-    // 強制返却処理
     window.forceReturn = async function(category, id) {
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
         try { await setDoc(doc(db, category, id), { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true }); } catch(e) { alert("返却処理に失敗しました。"); }
