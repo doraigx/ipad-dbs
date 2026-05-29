@@ -31,7 +31,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>📋 物品・機材 貸出返却履歴ログ</h1>
+    <h1>物品・機材 貸出返却履歴ログ</h1>
     
     <div class="nav-container">
         <a href="./admin.html" class="back-btn">⬅️ データベース管理画面に戻る</a>
@@ -43,14 +43,15 @@
                 <th style="width: 10%;">カテゴリ</th>
                 <th style="width: 8%;">管理番号</th>
                 <th style="width: 26%;">型番 / モデル名</th>
+                <th style="width: 11%;">現在の状態</th>
                 <th style="width: 11%;">学籍番号</th>
-                <th style="width: 11%;">氏名</th>
-                <th style="width: 17%;">貸出日時</th>
-                <th style="width: 17%;">返却日時</th>
+                <th style="width: 12%;">氏名</th>
+                <th style="width: 11%;">貸出日時</th>
+                <th style="width: 11%;">返却日時</th>
             </tr>
         </thead>
         <tbody id="log-table-body">
-            <tr><td colspan="7" style="text-align:center; color:#888;">ログを読み込み中...</td></tr>
+            <tr><td colspan="8" style="text-align:center; color:#888;">ログを読み込み中...</td></tr>
         </tbody>
     </table>
 </div>
@@ -73,38 +74,43 @@
     const db = getFirestore(app);
     const tbody = document.getElementById('log-table-body');
 
-    // 💡 新設されたlogsコレクションを最新貸出順にリアルタイム購読
-    const logQuery = query(collection(db, "logs"), orderBy("borrowedAtTimestamp", "desc"));
-
-    onSnapshot(logQuery, (snapshot) => {
+    // 💡 専用のlogsコレクションから、貸出時刻の新しい順にリアルタイム取得
+    onSnapshot(query(collection(db, "logs"), orderBy("borrowedAt", "desc")), (snapshot) => {
         tbody.innerHTML = "";
         
         if (snapshot.empty) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
             return;
         }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const categoryText = data.category === "ipads" ? "iPad製品" : "その他機材";
+            const row = document.createElement('tr');
+            
+            const catName = data.category === "ipads" ? "iPad製品" : "その他機材";
             const catClass = data.category === "ipads" ? "badge-ipad" : "badge-other";
             
-            // タイムスタンプを日時に変換
-            const rentTime = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-            const returnTime = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span class="badge badge-rent">🔴 貸出中</span>`;
+            const rentDateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
+            const returnDateStr = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span style="color:#aaa;">—</span>`;
+            
+            const statusHTML = data.status === "borrowed" 
+                ? `<span class="badge badge-rent">🔴 使用中</span>` 
+                : `<span class="badge badge-return">🟢 返却済</span>`;
 
-            const row = document.createElement('tr');
             row.innerHTML = `
-                <td><span class="badge ${catClass}">${categoryText}</span></td>
+                <td><span class="badge ${catClass}">${catName}</span></td>
                 <td><strong>No.${data.itemId}</strong></td>
                 <td>${data.model || "未設定"}</td>
-                <td><mark>${data.studentId || "—"}</mark></td>
-                <td><strong>${data.studentName || "—"}</strong></td>
-                <td style="font-size:0.8rem; font-weight:500;">${rentTime}</td>
-                <td style="font-size:0.8rem; font-weight:500;">${returnTime}</td>
+                <td>${statusHTML}</td>
+                <td><mark>${data.borrowedBy || "—"}</mark></td>
+                <td><strong>${data.borrowedByName || "—"}</strong></td>
+                <td style="font-size:0.8rem; font-weight:500;">${rentDateStr}</td>
+                <td style="font-size:0.8rem; font-weight:500;">${returnDateStr}</td>
             `;
             tbody.appendChild(row);
         });
+    }, (error) => {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f44336;">データの読み込みに失敗しました（インデックスの構築を待っている可能性があります）。</td></tr>`;
     });
 </script>
 </body>
