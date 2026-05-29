@@ -40,13 +40,13 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 15%;">日時</th>
                 <th style="width: 10%;">カテゴリ</th>
                 <th style="width: 8%;">管理番号</th>
-                <th style="width: 32%;">型番 / モデル名</th>
-                <th style="width: 10%;">アクション</th>
-                <th style="width: 12%;">学籍番号</th>
-                <th style="width: 13%;">氏名</th>
+                <th style="width: 26%;">型番 / モデル名</th>
+                <th style="width: 11%;">学籍番号</th>
+                <th style="width: 11%;">氏名</th>
+                <th style="width: 17%;">貸出日時</th>
+                <th style="width: 17%;">返却日時</th>
             </tr>
         </thead>
         <tbody id="log-table-body">
@@ -57,7 +57,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -73,117 +73,38 @@
     const db = getFirestore(app);
     const tbody = document.getElementById('log-table-body');
 
-    let rawIpads = [];
-    let rawOthers = [];
+    // 💡 新設されたlogsコレクションを最新貸出順にリアルタイム購読
+    const logQuery = query(collection(db, "logs"), orderBy("borrowedAtTimestamp", "desc"));
 
-    function compileAndRenderLogs() {
+    onSnapshot(logQuery, (snapshot) => {
         tbody.innerHTML = "";
-        const allLogs = [];
-
-        // ① iPad側から「現在貸出中(borrowedAt)」と「最後に返却された(returnedAt)」のタイムスタンプを抽出
-        rawIpads.forEach(item => {
-            const id = item.id;
-            const model = item.model || "未設定";
-            
-            if (item.status === "borrowed" && item.borrowedAt) {
-                allLogs.push({
-                    time: item.borrowedAt.seconds,
-                    dateStr: new Date(item.borrowedAt.seconds * 1000).toLocaleString('ja-JP'),
-                    category: "iPad製品",
-                    catClass: "badge-ipad",
-                    id: id,
-                    model: model,
-                    action: "貸出中",
-                    actClass: "badge-rent",
-                    studentId: item.borrowedBy,
-                    name: item.borrowedByName
-                });
-            }
-            if (item.returnedAt) {
-                allLogs.push({
-                    time: item.returnedAt.seconds,
-                    dateStr: new Date(item.returnedAt.seconds * 1000).toLocaleString('ja-JP'),
-                    category: "iPad製品",
-                    catClass: "badge-ipad",
-                    id: id,
-                    model: model,
-                    action: "返却済",
-                    actClass: "badge-return",
-                    studentId: item.lastBorrowedBy || "—",
-                    name: item.lastBorrowedByName || "—"
-                });
-            }
-        });
-
-        // ② その他機材側からも同様にタイムスタンプを抽出
-        rawOthers.forEach(item => {
-            const id = item.id;
-            const model = item.model || "未設定";
-            
-            if (item.status === "borrowed" && item.borrowedAt) {
-                allLogs.push({
-                    time: item.borrowedAt.seconds,
-                    dateStr: new Date(item.borrowedAt.seconds * 1000).toLocaleString('ja-JP'),
-                    category: "その他機材",
-                    catClass: "badge-other",
-                    id: id,
-                    model: model,
-                    action: "貸出中",
-                    actClass: "badge-rent",
-                    studentId: item.borrowedBy,
-                    name: item.borrowedByName
-                });
-            }
-            if (item.returnedAt) {
-                allLogs.push({
-                    time: item.returnedAt.seconds,
-                    dateStr: new Date(item.returnedAt.seconds * 1000).toLocaleString('ja-JP'),
-                    category: "その他機材",
-                    catClass: "badge-other",
-                    id: id,
-                    model: model,
-                    action: "返却済",
-                    actClass: "badge-return",
-                    studentId: item.lastBorrowedBy || "—",
-                    name: item.lastBorrowedByName || "—"
-                });
-            }
-        });
-
-        if (allLogs.length === 0) {
+        
+        if (snapshot.empty) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
             return;
         }
 
-        // 日時が新しい順（降順）にソート
-        allLogs.sort((a, b) => b.time - a.time);
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const categoryText = data.category === "ipads" ? "iPad製品" : "その他機材";
+            const catClass = data.category === "ipads" ? "badge-ipad" : "badge-other";
+            
+            // タイムスタンプを日時に変換
+            const rentTime = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
+            const returnTime = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span class="badge badge-rent">🔴 貸出中</span>`;
 
-        // HTML出力
-        allLogs.forEach(log => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td style="font-size:0.8rem; font-weight:500;">${log.dateStr}</td>
-                <td><span class="badge ${log.catClass}">${log.category}</span></td>
-                <td><strong>No.${log.id}</strong></td>
-                <td>${log.model}</td>
-                <td><span class="badge ${log.actClass}">${log.action}</span></td>
-                <td>${log.studentId !== "—" ? `<mark>${log.studentId}</mark>` : "—"}</td>
-                <td>${log.name !== "—" ? `<strong>${log.name}</strong>` : "—"}</td>
+                <td><span class="badge ${catClass}">${categoryText}</span></td>
+                <td><strong>No.${data.itemId}</strong></td>
+                <td>${data.model || "未設定"}</td>
+                <td><mark>${data.studentId || "—"}</mark></td>
+                <td><strong>${data.studentName || "—"}</strong></td>
+                <td style="font-size:0.8rem; font-weight:500;">${rentTime}</td>
+                <td style="font-size:0.8rem; font-weight:500;">${returnTime}</td>
             `;
             tbody.appendChild(row);
         });
-    }
-
-    onSnapshot(collection(db, "ipads"), (snap) => {
-        rawIpads = [];
-        snap.forEach(doc => rawIpads.push({ id: doc.id, ...doc.data() }));
-        compileAndRenderLogs();
-    });
-
-    onSnapshot(collection(db, "other_equipments"), (snap) => {
-        rawOthers = [];
-        snap.forEach(doc => rawOthers.push({ id: doc.id, ...doc.data() }));
-        compileAndRenderLogs();
     });
 </script>
 </body>
