@@ -58,7 +58,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -74,8 +74,8 @@
     const db = getFirestore(app);
     const tbody = document.getElementById('log-table-body');
 
-    // 💡 専用のlogsコレクションから、貸出時刻の新しい順にリアルタイム取得
-    onSnapshot(query(collection(db, "logs"), orderBy("borrowedAt", "desc")), (snapshot) => {
+    // 💡 エラーの原因となるFirestore側でのソート指定を外し、標準のコレクション取得に変更
+    onSnapshot(collection(db, "logs"), (snapshot) => {
         tbody.innerHTML = "";
         
         if (snapshot.empty) {
@@ -83,8 +83,21 @@
             return;
         }
 
+        // 💡 取得したドキュメントデータを一旦配列に格納
+        const logEntries = [];
         snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
+            logEntries.push(docSnap.data());
+        });
+
+        // 💡 JavaScript側で「貸出日時の新しい順（降順）」に安全かつ確実にソートを実行（インデックスエラーを完全回避）
+        logEntries.sort((a, b) => {
+            const timeA = a.borrowedAt ? a.borrowedAt.seconds : 0;
+            const timeB = b.borrowedAt ? b.borrowedAt.seconds : 0;
+            return timeB - timeA;
+        });
+
+        // HTMLへ出力
+        logEntries.forEach((data) => {
             const row = document.createElement('tr');
             
             const catName = data.category === "ipads" ? "iPad製品" : "その他機材";
@@ -110,7 +123,7 @@
             tbody.appendChild(row);
         });
     }, (error) => {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f44336;">データの読み込みに失敗しました（インデックスの構築を待っている可能性があります）。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f44336;">データの読み込みに失敗しました。</td></tr>`;
     });
 </script>
 </body>
