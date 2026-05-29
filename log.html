@@ -58,7 +58,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -74,57 +74,63 @@
     const db = getFirestore(app);
     const tbody = document.getElementById('log-table-body');
 
-    // 💡 修正点：エラーの原因となるFirestore側でのソート指定（orderBy）を完全に外し、シンプルなコレクション取得に変更（インデックス構築の待ちやエラーを100%回避します）
-    onSnapshot(collection(db, "logs"), (snapshot) => {
-        tbody.innerHTML = "";
-        
-        if (snapshot.empty) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
-            return;
+    async function loadLogsDirectly() {
+        try {
+            // 💡 インデックスエラーを100%回避するため、コレクションを無条件で直接全件取得
+            const snapshot = await getDocs(collection(db, "logs"));
+            
+            tbody.innerHTML = "";
+            
+            if (snapshot.empty) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
+                return;
+            }
+
+            const logEntries = [];
+            snapshot.forEach((docSnap) => {
+                logEntries.push(docSnap.data());
+            });
+
+            // 💡 安全にJavaScript側で「貸出日時の新しい順（降順）」に並び替え
+            logEntries.sort((a, b) => {
+                const timeA = a.borrowedAt ? a.borrowedAt.seconds : 0;
+                const timeB = b.borrowedAt ? b.borrowedAt.seconds : 0;
+                return timeB - timeA;
+            });
+
+            // テーブルへ出力
+            logEntries.forEach((data) => {
+                const row = document.createElement('tr');
+                
+                const catName = data.category === "ipads" ? "iPad製品" : "その他機材";
+                const catClass = data.category === "ipads" ? "badge-ipad" : "badge-other";
+                
+                const rentDateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
+                const returnDateStr = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span style="color:#aaa;">—</span>`;
+                
+                const statusHTML = data.status === "borrowed" 
+                    ? `<span class="badge badge-rent">🔴 使用中</span>` 
+                    : `<span class="badge badge-return">🟢 返却済</span>`;
+
+                row.innerHTML = `
+                    <td><span class="badge ${catClass}">${catName}</span></td>
+                    <td><strong>No.${data.itemId}</strong></td>
+                    <td>${data.model || "未設定"}</td>
+                    <td>${statusHTML}</td>
+                    <td><mark>${data.borrowedBy || "—"}</mark></td>
+                    <td><strong>${data.borrowedByName || "—"}</strong></td>
+                    <td style="font-size:0.8rem; font-weight:500;">${rentDateStr}</td>
+                    <td style="font-size:0.8rem; font-weight:500;">${returnDateStr}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f44336;">データの読み込みに失敗しました。</td></tr>`;
         }
+    }
 
-        // データを一旦配列に退避します
-        const logEntries = [];
-        snapshot.forEach((docSnap) => {
-            logEntries.push(docSnap.data());
-        });
-
-        // 💡 データベースの代わりにJavaScript側で「貸出日時の新しい順（降順）」に安全に並び替えを実行します
-        logEntries.sort((a, b) => {
-            const timeA = a.borrowedAt ? a.borrowedAt.seconds : 0;
-            const timeB = b.borrowedAt ? b.borrowedAt.seconds : 0;
-            return timeB - timeA;
-        });
-
-        // テーブルへ綺麗に出力
-        logEntries.forEach((data) => {
-            const row = document.createElement('tr');
-            
-            const catName = data.category === "ipads" ? "iPad製品" : "その他機材";
-            const catClass = data.category === "ipads" ? "badge-ipad" : "badge-other";
-            
-            const rentDateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-            const returnDateStr = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span style="color:#aaa;">—</span>`;
-            
-            const statusHTML = data.status === "borrowed" 
-                ? `<span class="badge badge-rent">🔴 使用中</span>` 
-                : `<span class="badge badge-return">🟢 返却済</span>`;
-
-            row.innerHTML = `
-                <td><span class="badge ${catClass}">${catName}</span></td>
-                <td><strong>No.${data.itemId}</strong></td>
-                <td>${data.model || "未設定"}</td>
-                <td>${statusHTML}</td>
-                <td><mark>${data.borrowedBy || "—"}</mark></td>
-                <td><strong>${data.borrowedByName || "—"}</strong></td>
-                <td style="font-size:0.8rem; font-weight:500;">${rentDateStr}</td>
-                <td style="font-size:0.8rem; font-weight:500;">${returnDateStr}</td>
-            `;
-            tbody.appendChild(row);
-        });
-    }, (error) => {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#f44336;">データの読み込みに失敗しました。</td></tr>`;
-    });
+    // 画面表示時に実行
+    loadLogsDirectly();
 </script>
 </body>
 </html>
