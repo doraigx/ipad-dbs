@@ -11,6 +11,7 @@
         .container { max-width: 630px; margin: 0 auto; }
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
         h2 { font-size: 1.3rem; margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid #2196f3; }
+        h3 { font-size: 1rem; color: #aaa; margin-top: 15px; margin-bottom: 5px; padding-left: 5px; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
         
         .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
@@ -50,21 +51,21 @@
         
         .tile-info { font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; }
         
-        /* 💡 修正：機材名が長い場合に最大2行で綺麗に折り返すためのCSS設定 */
+        /* 機材名が長い場合に最大2行で綺麗に折り返すためのCSS設定 */
         .tile-model { 
             font-size: 0.65rem; 
             opacity: 0.9; 
             font-weight: normal; 
             width: 100%;
-            word-break: break-all; /* 英数字が連続しても強制折り返し */
+            word-break: break-all; 
             display: -webkit-box;
             -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2; /* 💡 ここで最大2行に制限 */
+            -webkit-line-clamp: 2; 
             overflow: hidden;
             text-overflow: ellipsis;
             line-height: 1.2;
             max-height: 2.4em;
-            margin: auto 0; /* 上下中央寄せ */
+            margin: auto 0; 
         }
         
         /* 空白時のメッセージ */
@@ -80,10 +81,16 @@
     </div>
 
     <h2>借りているiPad</h2>
+    <h3>iPad製品</h3>
     <div class="grid" id="my-ipad-grid"></div>
+    <h3>その他機材</h3>
+    <div class="grid" id="my-other-grid"></div>
 
     <h2>貸出・返却</h2>
+    <h3>iPad製品 一覧</h3>
     <div class="grid" id="ipad-grid"></div>
+    <h3>その他機材 一覧</h3>
+    <div class="grid" id="other-grid"></div>
 </div>
 
 <script type="module">
@@ -178,7 +185,9 @@
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
-                    initSeparateIpadGrids(); 
+                    // 💡 「iPad」と「その他機材」それぞれの表示エリアを完全に独立させて処理を呼び出します
+                    initSeparateGrids("ipads", "my-ipad-grid", "ipad-grid");
+                    initSeparateGrids("other_equipments", "my-other-grid", "other-grid");
                 }
             });
         }
@@ -225,41 +234,33 @@
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    // 分離されたグリッドをマルチカテゴリ対応で結合描画するメイン関数
-    function initSeparateIpadGrids() {
-        const myGrid = document.getElementById('my-ipad-grid');
-        const mainGrid = document.getElementById('ipad-grid');
+    // 💡 iPad製品とその他機材をそれぞれの専用エリアに完全に分けて、お互いが混ざらないように描画するロジック
+    function initSeparateGrids(category, myGridId, mainGridId) {
+        const myGrid = document.getElementById(myGridId);
+        const mainGrid = document.getElementById(mainGridId);
 
-        let cachedIpads = [];
-        let cachedOthers = [];
-
-        function syncRender() {
+        onSnapshot(collection(db, category), (snapshot) => {
             myGrid.innerHTML = ""; 
             mainGrid.innerHTML = ""; 
 
-            const combinedList = [];
-            cachedIpads.forEach(item => combinedList.push({ ...item, category: "ipads" }));
-            cachedOthers.forEach(item => combinedList.push({ ...item, category: "other_equipments" }));
-
-            combinedList.sort((a, b) => {
-                if (Number(a.id) === Number(b.id)) {
-                    return a.category === "ipads" ? -1 : 1;
-                }
-                return Number(a.id) - Number(b.id);
+            const itemList = [];
+            snapshot.forEach((docSnap) => {
+                itemList.push({ id: docSnap.id, data: docSnap.data() });
             });
+            itemList.sort((a, b) => Number(a.id) - Number(b.id));
 
             let myBorrowCount = 0;
 
-            combinedList.forEach((item) => {
+            itemList.forEach((item) => {
                 const id = item.id;
                 const data = item.data;
-                const cat = item.category;
                 const modelName = data.model || "iPad";
 
-                const myTileId = `my-tile-${cat}-${id}`;
-                const mainTileId = `main-tile-${cat}-${id}`;
+                // HTMLのID重複バグを回避するための固有識別名
+                const myTileId = `my-tile-${category}-${id}`;
+                const mainTileId = `main-tile-${category}-${id}`;
 
-                // 1. 自分が借りている端末（上の専用リストへ出力：オレンジ固定）
+                // 1. 自分が借りている機材（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
@@ -270,11 +271,11 @@
                         <div class="tile-model">${modelName}</div>
                         <div class="tile-info">🔄 返却</div>
                     `;
-                    myTile.onclick = () => handleReturn(cat, id);
+                    myTile.onclick = () => handleReturn(category, id);
                     myGrid.appendChild(myTile);
                 }
 
-                // 2. 全体リスト（下の通常リストへ出力）
+                // 2. 全体リスト（下の通常リストへ出力：カテゴリごとに完全に分断されて表示されます）
                 const mainTile = document.createElement('div');
                 mainTile.id = mainTileId;
 
@@ -286,7 +287,7 @@
                             <div class="tile-model">${modelName}</div>
                             <div class="tile-info">🔄 使用中</div>
                         `;
-                        mainTile.onclick = () => handleReturn(cat, id);
+                        mainTile.onclick = () => handleReturn(category, id);
                     } else {
                         mainTile.className = "ipad-tile borrowed";
                         mainTile.innerHTML = `
@@ -302,7 +303,7 @@
                         <div class="tile-model">${modelName}</div>
                         <div class="tile-info">🟢 貸出可能</div>
                     `;
-                    mainTile.onclick = () => handleBorrow(cat, id, modelName);
+                    mainTile.onclick = () => handleBorrow(category, id, modelName);
                 }
                 mainGrid.appendChild(mainTile);
             });
@@ -310,18 +311,6 @@
             if (myBorrowCount === 0) {
                 myGrid.innerHTML = `<div class="empty-message">現在、あなたが借りているiPadはありません。</div>`;
             }
-        }
-
-        onSnapshot(collection(db, "ipads"), (snapshot) => {
-            cachedIpads = [];
-            snapshot.forEach(docSnap => cachedIpads.push({ id: docSnap.id, data: docSnap.data() }));
-            syncRender();
-        });
-
-        onSnapshot(collection(db, "other_equipments"), (snapshot) => {
-            cachedOthers = [];
-            snapshot.forEach(docSnap => cachedOthers.push({ id: docSnap.id, data: docSnap.data() }));
-            syncRender();
         });
     }
 
