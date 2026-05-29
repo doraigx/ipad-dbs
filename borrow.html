@@ -185,7 +185,6 @@
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
-                    // 💡 「iPad」と「その他機材」それぞれの表示エリアを完全に独立させて処理を呼び出します
                     initSeparateGrids("ipads", "my-ipad-grid", "ipad-grid");
                     initSeparateGrids("other_equipments", "my-other-grid", "other-grid");
                 }
@@ -230,11 +229,11 @@
         try {
             await signOut(auth);
             alert("ログアウトしました。ログイン画面に戻ります。");
+            // 💡 履歴を上書きして安全に borrow.html 自体に戻すリダイレクト処理
             window.location.replace("./borrow.html");
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    // 💡 iPad製品とその他機材をそれぞれの専用エリアに完全に分けて、お互いが混ざらないように描画するロジック
     function initSeparateGrids(category, myGridId, mainGridId) {
         const myGrid = document.getElementById(myGridId);
         const mainGrid = document.getElementById(mainGridId);
@@ -256,11 +255,9 @@
                 const data = item.data;
                 const modelName = data.model || "iPad";
 
-                // HTMLのID重複バグを回避するための固有識別名
                 const myTileId = `my-tile-${category}-${id}`;
                 const mainTileId = `main-tile-${category}-${id}`;
 
-                // 1. 自分が借りている機材（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
@@ -275,7 +272,6 @@
                     myGrid.appendChild(myTile);
                 }
 
-                // 2. 全体リスト（下の通常リストへ出力：カテゴリごとに完全に分断されて表示されます）
                 const mainTile = document.createElement('div');
                 mainTile.id = mainTileId;
 
