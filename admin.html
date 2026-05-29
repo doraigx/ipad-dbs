@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機材貸出システム - 管理者画面</title>
+    <title>iPad貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
         
-        h1 { text-align: center; margin-bottom: 15px; color: #2196f3; font-size: 1.6rem; }
+        h1 { text-align: center; margin-bottom: 35px; color: #2196f3; font-size: 1.6rem; }
         h2 { font-size: 1.1rem; margin-top: 25px; color: #555; border-left: 4px solid #2196f3; padding-left: 10px; margin-bottom: 10px; }
         
         /* 検索・上部コントロールバーエリア */
@@ -333,6 +333,12 @@
                         });
                         await Promise.all(promises);
                     }
+
+                    // 💡 過去の蓄積ログコレクション内の学籍番号も同期更新
+                    const logSnapshot = await getDocs(query(collection(db, "logs"), where("borrowedBy", "==", oldStudentId)));
+                    logSnapshot.forEach(logDoc => {
+                        updateDoc(doc(db, "logs", logDoc.id), { borrowedBy: newStudentId, borrowedByName: studentName });
+                    });
                 }
 
                 alert("学籍番号、および貸出中iPadデータの紐付け変更がすべて正常に完了しました！");
@@ -350,22 +356,30 @@
         try { await deleteDoc(doc(db, category, id)); } catch(e) { alert("削除に失敗しました。"); }
     };
 
-    // 💡 履歴ログ拡張：強制返却および学生側からの通常返却時、返却タイムスタンプ(returnedAt)と、直前に誰が借りていたかの情報(lastBorrowedBy/Name)を履歴用に退避保持させる
+    // 強制返却
     window.forceReturn = async function(category, id) {
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
         try {
             const docRef = doc(db, category, id);
             const snap = await getDoc(docRef);
             if (snap.exists() && snap.data().status === "borrowed") {
-                const currentData = snap.data();
-                await setDoc(docRef, { 
-                    status: "available", 
-                    borrowedBy: "", 
-                    borrowedByName: "",
-                    returnedAt: new Date(),
-                    lastBorrowedBy: currentData.borrowedBy || "",
-                    lastBorrowedByName: currentData.borrowedByName || ""
-                }, { merge: true });
+                // 1. 機材自体の状態を変更
+                await setDoc(docRef, { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true });
+                
+                // 2. 💡 修正：logsコレクション内の該当する貸出中ログを探して返却時間を追記（上書き消去せず残す）
+                const logQuery = query(
+                    collection(db, "logs"), 
+                    where("category", "==", category), 
+                    where("itemId", "==", id), 
+                    where("status", "==", "borrowed")
+                );
+                const logSnap = await getDocs(logQuery);
+                logSnap.forEach((logDoc) => {
+                    updateDoc(doc(db, "logs", logDoc.id), {
+                        status: "returned",
+                        returnedAt: new Date()
+                    });
+                });
             }
         } catch(e) { alert("返却処理に失敗しました。"); }
     };
