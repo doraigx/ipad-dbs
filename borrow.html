@@ -257,11 +257,9 @@
                 const data = item.data;
                 const modelName = data.model || "iPad";
 
-                // HTMLのID重複バグを回避するための固有識別名
                 const myTileId = `my-tile-${category}-${id}`;
                 const mainTileId = `main-tile-${category}-${id}`;
 
-                // 1. 自分が借りている機材（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
@@ -276,7 +274,6 @@
                     myGrid.appendChild(myTile);
                 }
 
-                // 2. 全体リスト（下の通常リストへ出力：カテゴリごとに完全に分断されて表示されます）
                 const mainTile = document.createElement('div');
                 mainTile.id = mainTileId;
 
