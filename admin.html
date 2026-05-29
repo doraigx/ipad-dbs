@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad貸出システム - 管理者画面</title>
+    <title>機材貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
@@ -250,6 +250,13 @@
             if (newModelName && newModelName !== currentText) {
                 try {
                     await updateDoc(doc(db, category, id), { model: newModelName });
+                    
+                    // 💡 追加：機材名がその場でインライン編集された際、logsコレクション内の名称も自動追従更新する
+                    const logQuery = query(collection(db, "logs"), where("category", "==", category), where("itemId", "==", id));
+                    const logSnap = await getDocs(logQuery);
+                    logSnap.forEach((logDoc) => {
+                        updateDoc(doc(db, "logs", logDoc.id), { model: newModelName });
+                    });
                 } catch(e) { alert("名前の変更に失敗しました。"); }
             } else {
                 applyFilter();
@@ -366,7 +373,7 @@
                 // 1. 機材自体の状態を変更
                 await setDoc(docRef, { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true });
                 
-                // 2. 💡 修正：logsコレクション内の該当する貸出中ログを探して返却時間を追記（上書き消去せず残す）
+                // 2. 💡 logsコレクション内の該当する貸出中ログを探して返却時間を追記（上書き消去せず残す）
                 const logQuery = query(
                     collection(db, "logs"), 
                     where("category", "==", category), 
