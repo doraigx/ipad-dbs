@@ -76,9 +76,7 @@
 
     async function loadLogsDirectly() {
         try {
-            // 💡 インデックスエラーを100%回避するため、コレクションを無条件で直接全件取得
             const snapshot = await getDocs(collection(db, "logs"));
-            
             tbody.innerHTML = "";
             
             if (snapshot.empty) {
@@ -88,15 +86,20 @@
 
             const logEntries = [];
             snapshot.forEach((docSnap) => {
-                logEntries.push(docSnap.data());
+                const data = docSnap.data();
+                // 💡 安全ガード：最低限、貸出日時（borrowedAt）のデータが壊れずに存在しているものだけを配列に入れる
+                if (data && data.borrowedAt && typeof data.borrowedAt.seconds === 'number') {
+                    logEntries.push(data);
+                }
             });
 
-            // 💡 安全にJavaScript側で「貸出日時の新しい順（降順）」に並び替え
-            logEntries.sort((a, b) => {
-                const timeA = a.borrowedAt ? a.borrowedAt.seconds : 0;
-                const timeB = b.borrowedAt ? b.borrowedAt.seconds : 0;
-                return timeB - timeA;
-            });
+            if (logEntries.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#888;">記録されている貸出履歴はありません。</td></tr>`;
+                return;
+            }
+
+            // JavaScript側で安全に並び替え
+            logEntries.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
 
             // テーブルへ出力
             logEntries.forEach((data) => {
@@ -105,8 +108,10 @@
                 const catName = data.category === "ipads" ? "iPad製品" : "その他機材";
                 const catClass = data.category === "ipads" ? "badge-ipad" : "badge-other";
                 
-                const rentDateStr = data.borrowedAt ? new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-                const returnDateStr = data.returnedAt ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') : `<span style="color:#aaa;">—</span>`;
+                const rentDateStr = new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP');
+                const returnDateStr = data.returnedAt && data.returnedAt.seconds 
+                    ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') 
+                    : `<span style="color:#aaa;">—</span>`;
                 
                 const statusHTML = data.status === "borrowed" 
                     ? `<span class="badge badge-rent">🔴 使用中</span>` 
@@ -129,7 +134,6 @@
         }
     }
 
-    // 画面表示時に実行
     loadLogsDirectly();
 </script>
 </body>
