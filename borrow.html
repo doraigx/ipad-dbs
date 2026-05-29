@@ -209,12 +209,11 @@
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
-    // 分離されたグリッドをマルチカテゴリ対応で結合描画するメイン関数
+    // 💡 iPadとその他機材のID重複を内部で完全に分離して処理するメイン関数
     function initSeparateIpadGrids() {
         const myGrid = document.getElementById('my-ipad-grid');
         const mainGrid = document.getElementById('ipad-grid');
 
-        // 各コレクションの状態を同時に監視する
         let cachedIpads = [];
         let cachedOthers = [];
 
@@ -222,13 +221,17 @@
             myGrid.innerHTML = ""; 
             mainGrid.innerHTML = ""; 
 
-            // 両方のキャッシュを統合した配列を作る
             const combinedList = [];
             cachedIpads.forEach(item => combinedList.push({ ...item, category: "ipads" }));
             cachedOthers.forEach(item => combinedList.push({ ...item, category: "other_equipments" }));
 
-            // 管理番号（数値）の昇順で並び替える
-            combinedList.sort((a, b) => Number(a.id) - Number(b.id));
+            // 💡 管理番号が同じなら、iPad製品を先に、その他機材を後にきれいに並べる
+            combinedList.sort((a, b) => {
+                if (Number(a.id) === Number(b.id)) {
+                    return a.category === "ipads" ? -1 : 1;
+                }
+                return Number(a.id) - Number(b.id);
+            });
 
             let myBorrowCount = 0;
 
@@ -238,10 +241,15 @@
                 const cat = item.category;
                 const modelName = data.model || "iPad";
 
+                // 💡 HTML要素の重複を防ぐため、上のリスト用と下のリスト用に固有の識別用文字列（Prefix）を持たせます
+                const myTileId = `my-tile-${cat}-${id}`;
+                const mainTileId = `main-tile-${cat}-${id}`;
+
                 // 1. 自分が借りている端末（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
+                    myTile.id = myTileId;
                     myTile.className = "ipad-tile my-borrowed";
                     myTile.innerHTML = `
                         No.${id}
@@ -254,7 +262,7 @@
 
                 // 2. 全体リスト（下の通常リストへ出力）
                 const mainTile = document.createElement('div');
-                mainTile.id = `main-${cat}-${id}`;
+                mainTile.id = mainTileId;
 
                 if (data.status === "borrowed") {
                     if (data.borrowedBy === myStudentId) {
@@ -290,14 +298,12 @@
             }
         }
 
-        // iPadコレクションを監視
         onSnapshot(collection(db, "ipads"), (snapshot) => {
             cachedIpads = [];
             snapshot.forEach(docSnap => cachedIpads.push({ id: docSnap.id, data: docSnap.data() }));
             syncRender();
         });
 
-        // その他機材コレクションを監視
         onSnapshot(collection(db, "other_equipments"), (snapshot) => {
             cachedOthers = [];
             snapshot.forEach(docSnap => cachedOthers.push({ id: docSnap.id, data: docSnap.data() }));
@@ -305,7 +311,6 @@
         });
     }
 
-    // カテゴリ変数を連動させた共通貸出ロジック（名前の送信付き）
     async function handleBorrow(category, id, model) {
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
@@ -319,7 +324,6 @@
         } catch (e) { alert("貸出に失敗しました。"); }
     }
 
-    // カテゴリ変数を連動させた共通返却ロジック
     async function handleReturn(category, id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
