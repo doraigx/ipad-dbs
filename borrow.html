@@ -96,7 +96,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -185,6 +185,7 @@
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
                 
                 if (myStudentId) {
+                    // 💡 「iPad」と「その他機材」それぞれの表示エリアを完全に独立させて処理を呼び出します
                     initSeparateGrids("ipads", "my-ipad-grid", "ipad-grid");
                     initSeparateGrids("other_equipments", "my-other-grid", "other-grid");
                 }
@@ -234,6 +235,7 @@
         } catch(e) { alert("ログアウトに失敗しました。"); }
     }
 
+    // 💡 iPad製品とその他機材をそれぞれの専用エリアに完全に分けて、お互いが混ざらないように描画するロジック
     function initSeparateGrids(category, myGridId, mainGridId) {
         const myGrid = document.getElementById(myGridId);
         const mainGrid = document.getElementById(mainGridId);
@@ -255,9 +257,11 @@
                 const data = item.data;
                 const modelName = data.model || "iPad";
 
+                // HTMLのID重複バグを回避するための固有識別名
                 const myTileId = `my-tile-${category}-${id}`;
                 const mainTileId = `main-tile-${category}-${id}`;
 
+                // 1. 自分が借りている機材（上の専用リストへ出力：オレンジ固定）
                 if (data.status === "borrowed" && data.borrowedBy === myStudentId) {
                     myBorrowCount++;
                     const myTile = document.createElement('div');
@@ -272,6 +276,7 @@
                     myGrid.appendChild(myTile);
                 }
 
+                // 2. 全体リスト（下の通常リストへ出力：カテゴリごとに完全に分断されて表示されます）
                 const mainTile = document.createElement('div');
                 mainTile.id = mainTileId;
 
@@ -314,33 +319,57 @@
         if (!myStudentId) return;
         if (!confirm(`No.${id} [${model}] を借りますか？`)) return;
         try {
+            const rentTime = new Date();
+            
+            // 1. 機材自体の状態を変更
             await setDoc(doc(db, category, String(id)), {
                 status: "borrowed",
                 borrowedBy: myStudentId,
                 borrowedByName: myCustomName, 
-                borrowedAt: new Date()
+                borrowedAt: rentTime
             }, { merge: true });
+
+            // 2. 💡 新設：永続不変の専用logsコレクションに一意なドキュメントを作成して保存
+            const logId = `${category}_${id}_${rentTime.getTime()}`;
+            await setDoc(doc(db, "logs", logId), {
+                category: category,
+                itemId: id,
+                model: model,
+                status: "borrowed",
+                borrowedBy: myStudentId,
+                borrowedByName: myCustomName,
+                borrowedAt: rentTime,
+                returnedAt: null
+            });
+
         } catch (e) { alert("貸出に失敗しました。"); }
     }
 
-    // 💡 borrow.html 内の handleReturn 関数を以下に丸ごと差し替えてください
     async function handleReturn(category, id) {
         if (!confirm(`No.${id} を返却しますか？`)) return;
         try {
-            const docRef = doc(db, category, String(id));
-            const snap = await getDoc(docRef);
-            if (snap.exists() && snap.data().status === "borrowed") {
-                const currentData = snap.data();
-                // 💡 返却時に、直前の借用者情報と、今この瞬間の返却時刻(returnedAt)をクラウドへ刻印します
-                await setDoc(docRef, { 
-                    status: "available", 
-                    borrowedBy: "", 
-                    borrowedByName: "",
-                    returnedAt: new Date(),
-                    lastBorrowedBy: currentData.borrowedBy || "",
-                    lastBorrowedByName: currentData.borrowedByName || ""
-                }, { merge: true });
-            }
+            // 1. 機材自体の状態をリセット
+            await setDoc(doc(db, category, String(id)), { 
+                status: "available", 
+                borrowedBy: "", 
+                borrowedByName: "" 
+            }, { merge: true });
+
+            // 2. 💡 logsコレクション内から、今返却されたアイテムの「使用中(borrowed)」ログを探して返却日時を刻印
+            const logQuery = query(
+                collection(db, "logs"), 
+                where("category", "==", category), 
+                where("itemId", "==", id), 
+                where("status", "==", "borrowed")
+            );
+            const logSnap = await getDocs(logQuery);
+            logSnap.forEach((logDoc) => {
+                updateDoc(doc(db, "logs", logDoc.id), {
+                    status: "returned",
+                    returnedAt: new Date()
+                });
+            });
+
         } catch (e) { alert("返却に失敗しました。"); }
     }
 </script>
