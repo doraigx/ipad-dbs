@@ -3,136 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機材貸出システム - 管理者画面</title>
+    <title>iPad貸出システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
         
-        h1 { text-align: center; margin-bottom: 35px; color: #2196f3; font-size: 1.6rem; }
-        h2 { font-size: 1.1rem; margin-top: 25px; color: #555; border-left: 4px solid #2196f3; padding-left: 10px; margin-bottom: 10px; }
+        h1 { text-align: center; margin-bottom: 15px; color: #2196f3; font-size: 1.6rem; }
+        h2 { font-size: 1.1rem; margin-top: 25px; color: #555; border-left: 4px solid #2196f3; padding-left: 10px; margin-bottom: 5px; }
         
-        /* 検索・上部コントロールバーエリア */
         .top-bar { display: flex; gap: 15px; margin-bottom: 15px; align-items: stretch; }
-        .search-container { background: #e3f2fd; border: 1px solid #2196f3; padding: 10px 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; flex: 1; margin-bottom: 0; }
+        .search-container { background: #e3f2fd; border: 1px solid #2196f3; padding: 10px 15px; border-radius: 8px; display: flex; gap: 10px; align-items: center; flex: 1; }
         .search-container label { font-weight: bold; color: #0d47a1; font-size: 0.9rem; white-space: nowrap; }
         .search-input { flex: 1; padding: 8px 12px; border: 1px solid #bbdefb; border-radius: 6px; font-size: 0.9rem; background: white; }
         
-        /* 💡 新設：履歴ページへジャンプするリンクボタン */
         .log-nav-btn { display: flex; align-items: center; justify-content: center; padding: 0 20px; background: #0d47a1; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; text-decoration: none; white-space: nowrap; transition: 0.2s; }
         .log-nav-btn:hover { background: #0a3680; }
 
+        /* ロック開閉型ダッシュボード */
+        .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; }
+        .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
+        .summary-title { font-weight: bold; font-size: 1rem; color: #333; }
+        .grid-info-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+        .meta-input-group { display: flex; flex-direction: column; gap: 4px; }
+        .meta-input-group label { font-size: 0.75rem; font-weight: bold; color: #666; }
+        .meta-input-group input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #f9f9f9; }
+        .meta-input-group input:disabled { background: #eee; color: #666; cursor: not-allowed; border-color: #ddd; }
+
         .admin-form { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
         .form-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
         .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; background: white; height: 36px; box-sizing: border-box; }
-        .add-btn { padding: 0 25px; background: #2196f3; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: 0.2s; height: 36px; line-height: 36px; }
-        .add-btn:hover { background: #1976d2; }
-
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.88rem; margin-bottom: 20px; }
-        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
-        th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.9rem; letter-spacing: 0.5px; }
         
-        .status-badge { padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; color: white; display: inline-block; }
+        .btn-ui { padding: 6px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .lock-btn { background: #607d8b; color: white; }
+        .lock-btn.unlocked { background: #e91e63; }
+        .add-btn { background: #2196f3; color: white; height: 36px; line-height: 36px; padding: 0 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; margin-bottom: 25px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
+        th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.85rem; }
+        
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.72rem; color: white; display: inline-block; text-align: center; }
         .status-ok { background: #4caf50; }
         .status-ng { background: #f44336; }
         tr:hover { background-color: #f4f9ff; } 
         
-        .editable-model { cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: 0.2s; background: #f9f9f9; border: 1px dashed #bbb; display: block; width: 95%; box-sizing: border-box; font-weight: 500; font-size: 0.85rem; }
-        .editable-model:hover { background: #fffde7; border-color: #fbc02d; }
-        .model-edit-input { padding: 4px 8px; font-size: 0.85rem; border: 1px solid #2196f3; border-radius: 4px; width: 95%; box-sizing: border-box; height: 26px; }
+        .editable-cell { cursor: pointer; padding: 4px; border-radius: 4px; background: #f9f9f9; border: 1px dashed #bbb; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
+        .cell-edit-input { padding: 2px 4px; font-size: 0.8rem; border: 1px solid #2196f3; border-radius: 4px; width: 100%; box-sizing: border-box; }
 
-        .button-container { display: flex; gap: 5px; align-items: center; }
-        .action-btn { padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.78rem; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; white-space: nowrap; }
+        .button-container { display: flex; gap: 4px; align-items: center; }
+        .action-btn { padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border: 1px solid #ccc; white-space: nowrap; }
         .return-btn { background: #e0e0e0; color: #333; }
-        .return-btn:hover { background: #ddd; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
-        .delete-btn:hover { background: #cc0000; }
-        
-        .danger-zone { background: #fff3f3; border: 1px solid #ffcdd2; }
-        .danger-btn { background: #d32f2f; color: white; border: none; height: 36px; line-height: 36px; padding: 0 25px; }
-        .danger-btn:hover { background: #b71c1c; }
-        
-        .hint-text { font-size: 0.8rem; color: #666; margin-bottom: 8px; padding-left: 5px; }
+
+        select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>iPad・機材貸出管理データベース</h1>
+    <h1>iPad 貸出管理データベース</h1>
     
     <div class="top-bar">
         <div class="search-container">
-            <label for="search-box">🔍 機種名・使用者検索：</label>
-            <input type="text" id="search-box" class="search-input" placeholder="管理番号、型番・機種名、学籍番号、借りている人の名前でリアルタイムに絞り込み...">
+            <label for="search-box">🔍 iPad内データ検索：</label>
+            <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、借用者名、用途でリアルタイムに絞り込み...">
         </div>
+        <button id="global-lock-toggle" class="btn-ui lock-btn">🔒 編集ロック中（数値・年度固定）</button>
         <a href="./log.html" class="log-nav-btn">貸出・返却履歴ログを確認する</a>
     </div>
 
+    <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
+        <div class="form-group" style="flex: 0.5;">
+            <label>新年度の追加(Value)</label>
+            <input type="number" id="new-year-value" placeholder="例: 2018" disabled>
+        </div>
+        <div class="form-group">
+            <label>新年度の表示名(Label)</label>
+            <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）" disabled>
+        </div>
+        <button class="add-btn" id="add-year-btn" style="background: #ff9800;" disabled>年度枠を追加</button>
+    </div>
+
     <div class="admin-form">
-        <div class="form-group" style="flex: 0.5; min-width: 110px;">
-            <label for="new-item-category">カテゴリ</label>
-            <select id="new-item-category">
-                <option value="ipads">iPad製品</option>
-                <option value="other_equipments">その他機材</option>
-            </select>
+        <div class="form-group" style="flex: 0.6;">
+            <label for="ins-year">対象年度</label>
+            <select id="ins-year"></select>
+        </div>
+        <div class="form-group" style="flex: 0.4;">
+            <label for="ins-no">通し番号(No)</label>
+            <input type="number" id="ins-no" placeholder="例: 1">
         </div>
         <div class="form-group">
-            <label for="new-item-id">管理番号 (💡半角数字のみ)</label>
-            <input type="text" id="new-item-id" placeholder="例: 11" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <label for="ins-model">iPadの名前 / モデル名</label>
+            <input type="text" id="ins-model" placeholder="例: iPad 第6世代">
         </div>
         <div class="form-group">
-            <label for="new-item-model">型番・モデル名</label>
-            <input type="text" id="new-item-model" placeholder="例: iPad Air (第6世代)">
+            <label for="ins-serial">シリアル番号</label>
+            <input type="text" id="ins-serial" placeholder="シリアル">
         </div>
-        <button class="add-btn" id="add-item-btn">➕追加</button>
+        <button class="add-btn" id="add-ipad-btn">➕ iPadを新規登録</button>
     </div>
     
-    <p class="hint-text">💡 <b>型番/モデル名</b> を変更したい場合は、該当箇所を<b>ダブルクリック</b>するとその場で編集できます（Enterで保存）。</p>
-    
-    <h2>iPad製品 一覧</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 8%;">管理番号</th>
-                <th style="width: 32%;">型番 / モデル名 (ダブルクリックで編集)</th>
-                <th style="width: 12%;">現在の状態</th>
-                <th style="width: 12%;">学籍番号</th>
-                <th style="width: 12%;">氏名</th>
-                <th style="width: 14%;">貸出日時</th>
-                <th style="width: 10%;">操作</th>
-            </tr>
-        </thead>
-        <tbody id="ipad-table-body"></tbody>
-    </table>
-
-    <h2>その他機材 一覧</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 8%;">管理番号</th>
-                <th style="width: 32%;">型番 / モデル名 (ダブルクリックで編集)</th>
-                <th style="width: 12%;">現在の状態</th>
-                <th style="width: 12%;">学籍番号</th>
-                <th style="width: 12%;">氏名</th>
-                <th style="width: 14%;">貸出日時</th>
-                <th style="width: 10%;">操作</th>
-            </tr>
-        </thead>
-        <tbody id="other-table-body"></tbody>
-    </table>
-
-    <h2>👤 学生データ管理・修正（学籍番号の変更）</h2>
-    <div class="admin-form danger-zone">
-        <div class="form-group">
-            <label for="student-uid">対象学生のGoogle UID</label>
-            <input type="text" id="student-uid" placeholder="例: AIzaSyBCNywQ... (学生から申告されたUID)">
-        </div>
-        <div class="form-group">
-            <label for="correct-student-id">修正後の正しい学籍番号</label>
-            <input type="text" id="correct-student-id" placeholder="例: B260001">
-        </div>
-        <button class="add-btn danger-btn" id="fix-student-btn">学籍番号を強制書き換え</button>
-    </div>
+    <div id="dynamic-year-blocks"></div>
 </div>
 
 <script type="module">
@@ -152,244 +125,299 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    let rawIpadsData = [];
-    let rawOthersData = [];
+    let isEditingUnlocked = false; 
+    let yearsConfig = [];
+    let rawIpads = [];
 
-    document.getElementById('search-box').addEventListener('input', applyFilter);
+    // 🔒 編集ロック切り替えシステム
+    document.getElementById('global-lock-toggle').onclick = function() {
+        isEditingUnlocked = !isEditingUnlocked;
+        if (isEditingUnlocked) {
+            this.innerText = "🔓 編集ロック解除中（設定変更可）";
+            this.className = "btn-ui lock-btn unlocked";
+            document.getElementById('new-year-value').disabled = false;
+            document.getElementById('new-year-label').disabled = false;
+            document.getElementById('add-year-btn').disabled = false;
+        } else {
+            this.innerText = "🔒 編集ロック中（数値・年度固定）";
+            this.className = "btn-ui lock-btn";
+            document.getElementById('new-year-value').disabled = true;
+            document.getElementById('new-year-label').disabled = true;
+            document.getElementById('add-year-btn').disabled = true;
+        }
+        renderDashboardStructure();
+    };
 
-    onSnapshot(query(collection(db, "ipads")), (snapshot) => {
-        rawIpadsData = [];
-        snapshot.forEach(d => rawIpadsData.push({ id: d.id, ...d.data() }));
-        rawIpadsData.sort((a,b) => Number(a.id) - Number(b.id));
-        applyFilter();
+    // ① 年度マスタの監視
+    onSnapshot(doc(db, "settings", "years_config"), (snap) => {
+        if (snap.exists()) {
+            yearsConfig = snap.data().years || [];
+        } else {
+            yearsConfig = [];
+        }
+        yearsConfig.sort((a,b) => b.yearValue - a.yearValue);
+        updateYearSelects();
+        renderDashboardStructure();
     });
 
-    onSnapshot(query(collection(db, "other_equipments")), (snapshot) => {
-        rawOthersData = [];
-        snapshot.forEach(d => rawOthersData.push({ id: d.id, ...d.data() }));
-        rawOthersData.sort((a,b) => Number(a.id) - Number(b.id));
-        applyFilter();
+    // ② iPadデータのリアルタイム監視
+    onSnapshot(collection(db, "ipads"), (snap) => {
+        rawIpads = [];
+        snap.forEach(d => rawIpads.push({ id: d.id, ...d.data() }));
+        renderDashboardStructure();
     });
 
-    function applyFilter() {
-        const keyword = document.getElementById('search-box').value.trim().toLowerCase();
-        renderTable("ipads", rawIpadsData, keyword, "ipad-table-body");
-        renderTable("other_equipments", rawOthersData, keyword, "other-table-body");
-    }
-
-    function renderTable(category, dataList, filterWord, tbodyId) {
-        const tbody = document.getElementById(tbodyId);
-        tbody.innerHTML = "";
-
-        dataList.forEach((item) => {
-            const id = item.id;
-            const model = item.model || "未設定";
-            const status = item.status || "available";
-            const borrowedBy = item.borrowedBy || "";
-            const borrowedByName = item.borrowedByName || "";
-            
-            if (filterWord) {
-                const matchId = id.toLowerCase().includes(filterWord);
-                const matchModel = model.toLowerCase().includes(filterWord);
-                const matchUser = borrowedBy.toLowerCase().includes(filterWord);
-                const matchName = borrowedByName.toLowerCase().includes(filterWord);
-                if (!matchId && !matchModel && !matchUser && !matchName) return; 
-            }
-
-            const row = document.createElement('tr');
-            let statusHTML = `<span class="status-badge status-ok">貸出可能</span>`;
-            let userHTML = `<span style="color: #aaa;">—</span>`;
-            let nameHTML = `<span style="color: #aaa;">—</span>`;
-            let dateHTML = `<span style="color: #aaa;">—</span>`;
-            
-            let actionHTML = `
-                <div class="button-container">
-                    <button class="action-btn delete-btn" onclick="window.deleteItem('${category}', '${id}')">削除</button>
-                </div>
-            `;
-
-            if (status === "borrowed") {
-                const dateStr = item.borrowedAt ? new Date(item.borrowedAt.seconds * 1000).toLocaleString('ja-JP') : "不明";
-                statusHTML = `<span class="status-badge status-ng">貸出中</span>`;
-                userHTML = `<mark style="background:#ffeb3b; font-weight:bold; padding:4px 8px; border-radius:4px; font-size:0.8rem;">${borrowedBy}</mark>`;
-                nameHTML = `<strong>${borrowedByName}</strong>`;
-                dateHTML = dateStr;
-                
-                actionHTML = `
-                    <div class="button-container">
-                        <button class="action-btn return-btn" onclick="window.forceReturn('${category}', '${id}')">返却</button>
-                        <button class="action-btn delete-btn" onclick="window.deleteItem('${category}', '${id}')">削除</button>
-                    </div>
-                `;
-            }
-
-            row.innerHTML = `
-                <td><strong>No.${id}</strong></td>
-                <td><div class="editable-model" ondblclick="window.startEditModel('${category}', '${id}', this)">${model}</div></td>
-                <td>${statusHTML}</td>
-                <td>${userHTML}</td>
-                <td>${nameHTML}</td>
-                <td style="font-size:0.8rem; font-weight:500;">${dateHTML}</td>
-                <td>${actionHTML}</td>
-            `;
-            tbody.appendChild(row);
+    function updateYearSelects() {
+        const select = document.getElementById('ins-year');
+        select.innerHTML = "";
+        yearsConfig.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y.yearValue;
+            opt.innerText = y.yearLabel;
+            select.appendChild(opt);
         });
     }
 
-    window.startEditModel = function(category, id, element) {
-        const currentText = element.innerText;
+    // 年度別のメタ数値ボックスおよび一覧テーブルを構築
+    function renderDashboardStructure() {
+        const container = document.getElementById('dynamic-year-blocks');
+        container.innerHTML = "";
+        const filterWord = document.getElementById('search-box').value.trim().toLowerCase();
+
+        yearsConfig.forEach(y => {
+            const yearVal = y.yearValue;
+            const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
+
+            const block = document.createElement('div');
+            block.className = "year-summary-box";
+
+            // メタ数値の入力無効・有効化制御
+            const disabledAttr = isEditingUnlocked ? "" : "disabled";
+
+            block.innerHTML = `
+                <div class="summary-header">
+                    <div class="summary-title">${y.yearLabel}</div>
+                    ${isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
+                </div>
+                <div class="grid-info-inputs">
+                    <div class="meta-input-group">
+                        <label>購入台数</label>
+                        <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
+                    </div>
+                    <div class="meta-input-group">
+                        <label>貸し出し可能台数</label>
+                        <input type="number" value="${y.rentableCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'rentableCount', this.value)">
+                    </div>
+                    <div class="meta-input-group">
+                        <label>管理担当者の名前</label>
+                        <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
+                    </div>
+                    <div class="meta-input-group">
+                        <label>新入生の数</label>
+                        <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 7%;">年度-No</th>
+                            <th style="width: 14%;">iPadの名前</th>
+                            <th style="width: 12%;">シリアル番号</th>
+                            <th style="width: 9%;">現在の状態</th>
+                            <th style="width: 10%;">借用者氏名</th>
+                            <th style="width: 12%;">用途</th>
+                            <th style="width: 9%;">返却予定日</th>
+                            <th style="width: 7%;">本体貸出</th>
+                            <th style="width: 6%;">ケーブル</th>
+                            <th style="width: 6%;">Pencil</th>
+                            <th style="width: 8%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-year-${yearVal}"></tbody>
+                </table>
+            `;
+            container.appendChild(block);
+
+            // テーブル内データ描画
+            const tbody = document.getElementById(`tbody-year-${yearVal}`);
+            ipadsInYear.sort((a,b) => Number(a.itemNo) - Number(b.itemNo));
+
+            ipadsInYear.forEach(item => {
+                const id = item.id;
+                const model = item.model || "未設定";
+                const serial = item.serialNo || "—";
+                const status = item.status || "available";
+                const borrowedByName = item.borrowedByName || "—";
+                const purpose = item.purpose || "—";
+                const returnPlan = item.returnPlanDate || "—";
+                const isAvailable = item.isAvailable !== false; 
+                const hasCable = item.hasCableIncluded !== false;
+                const hasPencilOut = item.hasPencilOut === true;
+
+                if (filterWord) {
+                    const matchId = id.toLowerCase().includes(filterWord);
+                    const matchModel = model.toLowerCase().includes(filterWord);
+                    const matchSerial = serial.toLowerCase().includes(filterWord);
+                    const matchUser = borrowedByName.toLowerCase().includes(filterWord);
+                    const matchPurpose = purpose.toLowerCase().includes(filterWord);
+                    if (!matchId && !matchModel && !matchSerial && !matchUser && !matchPurpose) return;
+                }
+
+                const row = document.createElement('tr');
+                
+                let statusHTML = `<select class="table-select" onchange="window.updateField('${id}', 'status', this.value)">
+                    <option value="available" ${status==='available'?'selected':''}>🟢 公開</option>
+                    <option value="borrowed" ${status==='borrowed'?'selected':''}>🔴 貸出中</option>
+                    <option value="hidden" ${status==='hidden'?'selected':''}>⚫ 非公開</option>
+                </select>`;
+
+                let actionHTML = `<button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>`;
+                if (status === "borrowed") {
+                    actionHTML = `
+                        <div class="button-container">
+                            <button class="action-btn return-btn" onclick="window.forceReturnIpad('${id}')">返却</button>
+                            <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = `
+                    <td><strong>${id}</strong></td>
+                    <td><div class="editable-cell" ondblclick="window.startEditCell('${id}', 'model', this)">${model}</div></td>
+                    <td><div class="editable-cell" ondblclick="window.startEditCell('${id}', 'serialNo', this)">${serial}</div></td>
+                    <td>${statusHTML}</td>
+                    <td><strong>${borrowedByName}</strong></td>
+                    <td>${purpose}</td>
+                    <td>${returnPlan}</td>
+                    <td>
+                        <select class="table-select" onchange="window.updateField('${id}', 'isAvailable', this.value === 'true')">
+                            <option value="true" ${isAvailable?'selected':''}>可能</option>
+                            <option value="false" ${!isAvailable?'selected':''}>不可</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="table-select" onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
+                            <option value="true" ${hasCable?'selected':''}>付属</option>
+                            <option value="false" ${!hasCable?'selected':''}>なし</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="table-select" onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
+                            <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
+                            <option value="true" ${hasPencilOut?'selected':''}>貸出中</option>
+                        </select>
+                    </td>
+                    <td>${actionHTML}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+    }
+
+    // セルインライン編集
+    window.startEditCell = function(id, field, element) {
+        const currentText = element.innerText === "—" ? "" : element.innerText;
         const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'model-edit-input';
+        input.className = 'cell-edit-input';
         input.value = currentText;
         element.parentNode.replaceChild(input, element);
         input.focus();
 
-        async function saveChanges() {
-            const newModelName = input.value.trim();
-            if (newModelName && newModelName !== currentText) {
-                try {
-                    await updateDoc(doc(db, category, id), { model: newModelName });
-                    
-                    // 💡 追加：機材名がその場でインライン編集された際、logsコレクション内の名称も自動追従更新する
-                    const logQuery = query(collection(db, "logs"), where("category", "==", category), where("itemId", "==", id));
-                    const logSnap = await getDocs(logQuery);
-                    logSnap.forEach((logDoc) => {
-                        updateDoc(doc(db, "logs", logDoc.id), { model: newModelName });
-                    });
-                } catch(e) { alert("名前の変更に失敗しました。"); }
-            } else {
-                applyFilter();
-            }
+        async function save() {
+            const val = input.value.trim();
+            try {
+                await updateDoc(doc(db, "ipads", id), { [field]: val });
+            } catch(e) { renderDashboardStructure(); }
         }
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveChanges(); });
-        input.addEventListener('blur', saveChanges);
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+        input.addEventListener('blur', save);
     };
 
-    document.getElementById('add-item-btn').addEventListener('click', async () => {
-        const category = document.getElementById('new-item-category').value;
-        const idInput = document.getElementById('new-item-id').value.trim();
-        const modelInput = document.getElementById('new-item-model').value.trim();
+    window.updateField = async function(id, field, value) {
+        try { await updateDoc(doc(db, "ipads", id), { [field]: value }); } catch(e) {}
+    };
 
-        if (!/^[0-9]+$/.test(idInput)) {
-            alert("管理番号は【半角数字】のみで入力してください。");
-            return;
-        }
-        if (!modelInput) {
-            alert("型番を入力してください。");
-            return;
-        }
+    // 年度枠追加処理
+    document.getElementById('add-year-btn').onclick = async function() {
+        const v = document.getElementById('new-year-value').value.trim();
+        const l = document.getElementById('new-year-label').value.trim();
+        if (!v || !l) return alert("年度の数値と表示名の両方を入力してください。");
+
+        const nextYears = [...yearsConfig, { yearValue: Number(v), yearLabel: l, totalPurchased: 0, rentableCount: 0, managerName: "", freshmenCount: 0 }];
+        await setDoc(doc(db, "settings", "years_config"), { years: nextYears });
+        document.getElementById('new-year-value').value = "";
+        document.getElementById('new-year-label').value = "";
+    };
+
+    window.updateYearMeta = async function(yearValue, field, value) {
+        const updated = yearsConfig.map(y => {
+            if (y.yearValue === yearValue) {
+                return { ...y, [field]: (field === 'managerName' ? value : Number(value)) };
+            }
+            return y;
+        });
+        await setDoc(doc(db, "settings", "years_config"), { years: updated });
+    };
+
+    window.removeYearSlot = async function(yearValue) {
+        if (!confirm("この年度の枠組み設定を削除しますか？（中のiPadデータは削除されません）")) return;
+        const updated = yearsConfig.filter(y => y.yearValue !== yearValue);
+        await setDoc(doc(db, "settings", "years_config"), { years: updated });
+    };
+
+    // iPadデータ新規登録
+    document.getElementById('add-ipad-btn').onclick = async function() {
+        const yVal = document.getElementById('ins-year').value;
+        const noVal = document.getElementById('ins-no').value.trim();
+        const model = document.getElementById('new-item-model').value.trim();
+        const serial = document.getElementById('ins-serial').value.trim();
+
+        if (!noVal || !model) return alert("通し番号とモデル名は必須です。");
+        const docId = `${yVal}-${noVal}`; // 💡 識別IDを「年度-No」の形式に設定
 
         try {
-            const docRef = doc(db, category, idInput);
-            const docSnap = await getDoc(docRef);
+            const ref = doc(db, "ipads", docId);
+            const snap = await getDoc(ref);
+            if (snap.exists()) return alert(`重複エラー: ${docId} は既に登録されています。`);
 
-            if (docSnap.exists()) {
-                const catName = category === "ipads" ? "iPad製品" : "その他機材";
-                alert(`【重複エラー】管理番号 No.${idInput} は、すでに${catName}に登録されています。\n別の空いている番号で登録してください。`);
-                return;
-            }
-
-            await setDoc(docRef, {
-                model: modelInput,
+            await setDoc(ref, {
+                yearValue: Number(yVal),
+                itemNo: Number(noVal),
+                model: model,
+                serialNo: serial || "—",
                 status: "available",
-                borrowedBy: "",
-                borrowedByName: "", 
-                createdAt: new Date()
+                borrowedByName: "",
+                purpose: "",
+                returnPlanDate: "",
+                isAvailable: true,
+                hasCableIncluded: true,
+                hasPencilOut: false
             });
-            document.getElementById('new-item-id').value = "";
+            document.getElementById('ins-no').value = "";
             document.getElementById('new-item-model').value = "";
-        } catch(e) { alert("追加に失敗しました。"); }
-    });
-
-    document.getElementById('fix-student-btn').addEventListener('click', async () => {
-        const uid = document.getElementById('student-uid').value.trim();
-        const newStudentId = document.getElementById('correct-student-id').value.trim();
-
-        if (!uid || !newStudentId) {
-            alert("UIDと新しい学籍番号の両方を正しく入力してください。");
-            return;
-        }
-
-        if (confirm(`本当にUID: ${uid} の学籍番号を 「${newStudentId}」 に変更しますか？\n（現在貸出中のiPadがある場合はそれらも自動更新されます）`)) {
-            try {
-                const userDocRef = doc(db, "users", uid);
-                const userSnap = await getDoc(userDocRef);
-                
-                let oldStudentId = "";
-                let studentName = "";
-                if (userSnap.exists()) {
-                    oldStudentId = userSnap.data().studentId || "";
-                    studentName = userSnap.data().customName || ""; 
-                }
-
-                await setDoc(userDocRef, { studentId: newStudentId }, { merge: true });
-
-                if (oldStudentId) {
-                    for (const cat of ["ipads", "other_equipments"]) {
-                        const q = query(collection(db, cat), where("borrowedBy", "==", oldStudentId), where("status", "==", "borrowed"));
-                        const querySnapshot = await getDocs(q);
-                        
-                        const promises = [];
-                        querySnapshot.forEach((itemDoc) => {
-                            const docRef = doc(db, cat, itemDoc.id);
-                            promises.push(updateDoc(docRef, { 
-                                borrowedBy: newStudentId,
-                                borrowedByName: studentName
-                            }));
-                        });
-                        await Promise.all(promises);
-                    }
-
-                    // 💡 過去の蓄積ログコレクション内の学籍番号も同期更新
-                    const logSnapshot = await getDocs(query(collection(db, "logs"), where("borrowedBy", "==", oldStudentId)));
-                    logSnapshot.forEach(logDoc => {
-                        updateDoc(doc(db, "logs", logDoc.id), { borrowedBy: newStudentId, borrowedByName: studentName });
-                    });
-                }
-
-                alert("学籍番号、および貸出中iPadデータの紐付け変更がすべて正常に完了しました！");
-                document.getElementById('student-uid').value = "";
-                document.getElementById('correct-student-id').value = "";
-            } catch(e) { 
-                console.error(e);
-                alert("データの書き換えに失敗しました。"); 
-            }
-        }
-    });
-
-    window.deleteItem = async function(category, id) {
-        if (!confirm(`【警告】No.${id} をデータベースから完全に削除しますか？`)) return;
-        try { await deleteDoc(doc(db, category, id)); } catch(e) { alert("削除に失敗しました。"); }
+            document.getElementById('ins-serial').value = "";
+        } catch(e) { alert("登録に失敗しました。"); }
     };
 
-    // 強制返却
-    window.forceReturn = async function(category, id) {
+    window.deleteIpad = async function(id) {
+        if (!confirm(`【警告】${id} のiPadを完全にデータベースから削除しますか？`)) return;
+        await deleteDoc(doc(db, "ipads", id));
+    };
+
+    window.forceReturnIpad = async function(id) {
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
         try {
-            const docRef = doc(db, category, id);
-            const snap = await getDoc(docRef);
-            if (snap.exists() && snap.data().status === "borrowed") {
-                // 1. 機材自体の状態を変更
-                await setDoc(docRef, { status: "available", borrowedBy: "", borrowedByName: "" }, { merge: true });
-                
-                // 2. 💡 logsコレクション内の該当する貸出中ログを探して返却時間を追記（上書き消去せず残す）
-                const logQuery = query(
-                    collection(db, "logs"), 
-                    where("category", "==", category), 
-                    where("itemId", "==", id), 
-                    where("status", "==", "borrowed")
-                );
-                const logSnap = await getDocs(logQuery);
-                logSnap.forEach((logDoc) => {
-                    updateDoc(doc(db, "logs", logDoc.id), {
-                        status: "returned",
-                        returnedAt: new Date()
-                    });
-                });
-            }
-        } catch(e) { alert("返却処理に失敗しました。"); }
+            const ref = doc(db, "ipads", id);
+            await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
+            const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", id), where("status", "==", "borrowed"));
+            const logSnap = await getDocs(logQuery);
+            logSnap.forEach((logDoc) => {
+                updateDoc(doc(db, "logs", logDoc.id), { status: "returned", returnedAt: new Date() });
+            });
+        } catch(e) {}
     };
+
+    document.getElementById('search-box').oninput = renderDashboardStructure;
 </script>
 </body>
 </html>
