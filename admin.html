@@ -63,15 +63,15 @@
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
 
         select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; }
-        select.table-select:disabled { 
-            background: transparent; 
-            border: none; 
-            color: #333; 
-            -webkit-appearance: none; 
-            -moz-appearance: none; 
-            appearance: none; 
-            padding: 0; 
-            cursor: default; 
+        select.table-select:disabled { 
+            background: transparent; 
+            border: none; 
+            color: #333; 
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+            padding: 0; 
+            cursor: default; 
             opacity: 1;
         }
 
@@ -154,7 +154,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // 💡 windowスコープへ露出させ、再描画を跨いでもJavaScriptからロック状態を即座に判定可能にする
     window.isEditingUnlocked = false; 
     let yearsConfig = [];
     let rawIpads = [];
@@ -215,7 +214,6 @@
         container.innerHTML = "";
         const filterWord = document.getElementById('search-box').value.trim().toLowerCase();
 
-        // 外側のスコープの値を参照
         const disabledAttr = window.isEditingUnlocked ? "" : "disabled";
 
         yearsConfig.forEach(y => {
@@ -225,12 +223,13 @@
             const block = document.createElement('div');
             block.className = "year-summary-box";
 
+            // 💡 修正：「本体」から「使用」ヘッダーに変更
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
                         <label style="font-size:0.9rem; color:#333; white-space:nowrap;">表示名:</label>
-                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} 
-                            onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
+                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} 
+                            onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
                     ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
@@ -264,7 +263,7 @@
                             <th style="width: 10%;">使用者氏名</th>
                             <th style="width: 11%;">用途</th>
                             <th style="width: 9%;">返却予定日</th>
-                            <th style="width: 6%;">本体</th>
+                            <th style="width: 6%;">使用</th>
                             <th style="width: 6%;">ケブ</th>
                             <th style="width: 6%;">ペン</th>
                             <th style="width: 10%;">操作</th>
@@ -286,7 +285,7 @@
                 const borrowedByName = item.borrowedByName || "—";
                 const purpose = item.purpose || "—";
                 const returnPlan = item.returnPlanDate || "—";
-                const isAvailable = item.isAvailable !== false; 
+                const isAvailable = item.isAvailable !== false; 
                 const hasCable = item.hasCableIncluded !== false;
                 const hasPencilOut = item.hasPencilOut === true;
                 const notes = item.notes || ""; 
@@ -336,7 +335,6 @@
                     `;
                 }
 
-                // 💡 ロック中は空文字列なら完全非表示、編集解除モード時のみ薄いガイドを出現させる
                 let notesHTML = "";
                 if (notes) {
                     notesHTML = notes;
@@ -344,7 +342,7 @@
                     notesHTML = `<span class="notes-empty">クリックして備考を入力...</span>`;
                 }
 
-                // 💡 修正：略さず正式表記（可能/不可、有/無、使用中/なし）に変更
+                // 💡 修正：「使用」列に判定変更イベント（handleAvailabilityChange）をバインド
                 row.innerHTML = `
                     <td style="text-align:center;">${checkboxHTML}</td>
                     <td><strong>${id}</strong></td>
@@ -358,7 +356,7 @@
                     <td>${purpose}</td>
                     <td>${returnPlan}</td>
                     <td>
-                        <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'isAvailable', this.value === 'true')">
+                        <select class="table-select" ${disabledAttr} onchange="window.handleAvailabilityChange('${id}', this.value)">
                             <option value="true" ${isAvailable?'selected':''}>可能</option>
                             <option value="false" ${!isAvailable?'selected':''}>不可</option>
                         </select>
@@ -382,6 +380,25 @@
         });
         window.refreshBatchPanelUI();
     }
+
+    // 💡 新規：使用不可が選択された場合に自動で『⚫ 非公開』ステータスへ強制スイッチさせる連動ロジック
+    window.handleAvailabilityChange = async function(id, value) {
+        const isAvailable = (value === 'true');
+        try {
+            if (!isAvailable) {
+                // 不可にされた場合はisAvailableをfalseにし、同時にstatusを非公開(hidden)に更新
+                await updateDoc(doc(db, "ipads", id), { 
+                    isAvailable: false,
+                    status: "hidden"
+                });
+            } else {
+                // 可能に戻された場合はisAvailableをtrueに更新
+                await updateDoc(doc(db, "ipads", id), { 
+                    isAvailable: true 
+                });
+            }
+        } catch(e) { console.error(e); }
+    };
 
     window.handleCheckboxClick = function(checkbox) {
         const id = checkbox.value;
@@ -452,7 +469,6 @@
         } catch(e) { alert("一括削除中にエラーが発生しました。"); }
     };
 
-    // 💡 修正：HTMLの呼び出し指定（id, field, this）に完全に適合させ、ダブルクリックでバグを起こさず確実に入力ボックスを展開させる仕組みに全面修正
     window.startEditCell = function(id, field, element) {
         const isPlaceholder = element.querySelector('.notes-empty') !== null;
         const currentText = isPlaceholder ? "" : (element.innerText === "—" ? "" : element.innerText);
@@ -491,13 +507,13 @@
                 return alert("【エラー】その年度の数値（Value）はすでに登録されています。");
             }
 
-            const nextYears = [...currentList, { 
-                yearValue: Number(v), 
-                yearLabel: l, 
-                totalPurchased: 0, 
-                rentableCount: 0, 
-                managerName: "", 
-                freshmenCount: 0 
+            const nextYears = [...currentList, { 
+                yearValue: Number(v), 
+                yearLabel: l, 
+                totalPurchased: 0, 
+                rentableCount: 0, 
+                managerName: "", 
+                freshmenCount: 0 
             }];
             
             await setDoc(doc(db, "settings", "years_config"), { years: nextYears }, { merge: true });
