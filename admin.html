@@ -245,7 +245,7 @@
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
-                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;">表示名:</label>
+                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;"></label>
                         <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
                             onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
