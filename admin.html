@@ -51,6 +51,11 @@
         .editable-cell { padding: 4px; border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
         .unlocked .editable-cell { cursor: pointer; background: rgba(255,255,255,0.8); border: 1px dashed #bbb; }
         
+        /* 💡 備考欄専用のスタイル（文字サイズを少し小さくし、プレーンな表示から編集モード時に枠線を出す） */
+        .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 20px; }
+        .unlocked .notes-cell { cursor: pointer; background: rgba(255,255,255,0.9); border: 1px dashed #aaa; }
+        .notes-empty { color: #aaa; font-style: italic; }
+
         .cell-edit-input { padding: 2px 4px; font-size: 0.8rem; border: 1px solid #2196f3; border-radius: 4px; width: 100%; box-sizing: border-box; background: white; }
 
         .button-container { display: flex; gap: 4px; align-items: center; }
@@ -58,10 +63,7 @@
         .return-btn { background: #e0e0e0; color: #333; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
 
-        /* 💡 修正：プルダウンメニュー(select)の枠線・背景・矢印の制御用スタイル */
         select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; }
-        
-        /* ロック中（disabled状態）はブラウザ標準の枠や矢印(appearance)を完全に消し去り、文字だけにする */
         select.table-select:disabled { 
             background: transparent; 
             border: none; 
@@ -91,7 +93,7 @@
     <div class="top-bar">
         <div class="search-container">
             <label for="search-box">🔍 iPad内データ検索：</label>
-            <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、使用者名、用途でリアルタイムに絞り込み...">
+            <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、使用者名、用途、備考でリアルタイムに絞り込み...">
         </div>
         <button id="global-lock-toggle" class="btn-ui lock-btn">ここを押して編集</button>
         <a href="./log.html" class="log-nav-btn">使用・返却履歴ログを確認する</a>
@@ -255,15 +257,15 @@
                         <tr>
                             <th style="width: 4%;">選択</th>
                             <th style="width: 7%;">年度-No</th>
-                            <th style="width: 13%;">iPadの名前</th>
-                            <th style="width: 12%;">シリアル番号</th>
+                            <th style="width: 20%;">iPadの名前 / 備考欄</th>
+                            <th style="width: 15%;">シリアル番号</th>
                             <th style="width: 9%;">現在の状態</th>
                             <th style="width: 10%;">使用者氏名</th>
                             <th style="width: 11%;">用途</th>
                             <th style="width: 9%;">返却予定日</th>
-                            <th style="width: 7%;">本体使用</th>
-                            <th style="width: 6%;">ケーブル</th>
-                            <th style="width: 6%;">Pencil</th>
+                            <th style="width: 5%;">本体</th>
+                            <th style="width: 5%;">ケブ</th>
+                            <th style="width: 5%;">ペン</th>
                             <th style="width: 10%;">操作</th>
                         </tr>
                     </thead>
@@ -286,6 +288,7 @@
                 const isAvailable = item.isAvailable !== false; 
                 const hasCable = item.hasCableIncluded !== false;
                 const hasPencilOut = item.hasPencilOut === true;
+                const notes = item.notes || ""; // 💡 データベースから備考欄のテキストを取得
 
                 if (filterWord) {
                     const matchId = id.toLowerCase().includes(filterWord);
@@ -293,7 +296,8 @@
                     const matchSerial = serial.toLowerCase().includes(filterWord);
                     const matchUser = borrowedByName.toLowerCase().includes(filterWord);
                     const matchPurpose = purpose.toLowerCase().includes(filterWord);
-                    if (!matchId && !matchModel && !matchSerial && !matchUser && !matchPurpose) return;
+                    const matchNotes = notes.toLowerCase().includes(filterWord);
+                    if (!matchId && !matchModel && !matchSerial && !matchUser && !matchPurpose && !matchNotes) return;
                 }
 
                 const row = document.createElement('tr');
@@ -331,10 +335,18 @@
                     `;
                 }
 
+                // 💡 備考が空のときのプレースホルダー表示制御
+                const notesHTML = notes 
+                    ? notes 
+                    : `<span class="notes-empty">クリックして備考を入力...</span>`;
+
                 row.innerHTML = `
                     <td style="text-align:center;">${checkboxHTML}</td>
                     <td><strong>${id}</strong></td>
-                    <td><div class="editable-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div></td>
+                    <td>
+                        <div class="editable-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div>
+                        <div class="notes-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'notes', this)}">${notesHTML}</div>
+                    </td>
                     <td><div class="editable-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'serialNo', this)}">${serial}</div></td>
                     <td>${statusHTML}</td>
                     <td><strong>${borrowedByName}</strong></td>
@@ -342,20 +354,20 @@
                     <td>${returnPlan}</td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'isAvailable', this.value === 'true')">
-                            <option value="true" ${isAvailable?'selected':''}>可能</option>
+                            <option value="true" ${isAvailable?'selected':''}>可</option>
                             <option value="false" ${!isAvailable?'selected':''}>不可</option>
                         </select>
                     </td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
-                            <option value="true" ${hasCable?'selected':''}>付属</option>
-                            <option value="false" ${!hasCable?'selected':''}>なし</option>
+                            <option value="true" ${hasCable?'selected':''}>付</option>
+                            <option value="false" ${!hasCable?'selected':''}>無</option>
                         </select>
                     </td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
-                            <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
-                            <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
+                            <option value="false" ${!hasPencilOut?'selected':''}>無</option>
+                            <option value="true" ${hasPencilOut?'selected':''}>使</option>
                         </select>
                     </td>
                     <td>${actionHTML}</td>
@@ -436,7 +448,10 @@
     };
 
     window.startEditCell = function(id, field, element) {
-        const currentText = element.innerText === "—" ? "" : element.innerText;
+        // プレースホルダー文字が入っている場合は初期値を空にする
+        const isPlaceholder = element.querySelector('.notes-empty') !== null;
+        const currentText = isPlaceholder ? "" : (element.innerText === "—" ? "" : element.innerText);
+        
         const input = document.createElement('input');
         input.className = 'cell-edit-input';
         input.value = currentText;
@@ -527,7 +542,8 @@
                 returnPlanDate: "",
                 isAvailable: true,
                 hasCableIncluded: true,
-                hasPencilOut: false
+                hasPencilOut: false,
+                notes: "" // 新規登録時に備考欄を空文字で初期化
             });
             
             document.getElementById('ins-model').value = "";
