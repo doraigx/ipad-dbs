@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPad 使用管理システム - 管理者画面</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.gstatic.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
@@ -27,10 +27,7 @@
         .meta-input-group { display: flex; flex-direction: column; gap: 4px; }
         .meta-input-group label { font-size: 0.75rem; font-weight: bold; color: #666; }
         
-        /* 💡 修正：表の上の管理者名入力エリア(meta-input-group input)のロック・編集時共通外見制御 */
         .meta-input-group input { padding: 6px 10px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; }
-        
-        /* ロック中（disabled状態）はテキストボックスの枠、背景、立体感を完全に消し去ってプレーンテキスト化 */
         .meta-input-group input:disabled {
             background: transparent !important;
             border: none !important;
@@ -40,13 +37,14 @@
             opacity: 1;
             box-shadow: none !important;
         }
-        
-        /* ロック解除編集モード時は通常の入力欄として白ボックス化 */
         .unlocked .meta-input-group input {
             background: #f9f9f9;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+
+        /* 💡 自動集計テキスト専用の静的なスタイル表現 */
+        .static-count-text { font-size: 0.95rem; font-weight: bold; color: #0d47a1; padding: 5px 0; display: inline-block; }
 
         .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
@@ -58,8 +56,8 @@
         .lock-btn.unlocked { background: #e91e63; }
         .add-btn { background: #2196f3; color: white; height: 36px; line-height: 36px; padding: 0 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; margin-bottom: 25px; }
-        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; margin-bottom: 25px; table-layout: fixed; }
+        th, td { padding: 8px 8px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.85rem; }
         
         tr.row-available { background-color: #e8f5e9; } 
@@ -67,21 +65,21 @@
         tr.row-hidden { background-color: #f5f5f5; }    
         tr:hover { filter: brightness(0.97); } 
         
-        .editable-cell { padding: 4px; border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
+        .editable-cell { padding: 4px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 24px; overflow: hidden; text-overflow: ellipsis; }
         .unlocked .editable-cell { cursor: pointer; background: rgba(255,255,255,0.8); border: 1px dashed #bbb; }
         
-        .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 0px; }
+        .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 0px; overflow: hidden; text-overflow: ellipsis; }
         .unlocked .notes-cell { cursor: pointer; background: rgba(255,255,255,0.9); border: 1px dashed #aaa; min-height: 20px; }
         .notes-empty { color: #aaa; font-style: italic; }
 
         .cell-edit-input { padding: 2px 4px; font-size: 0.8rem; border: 1px solid #2196f3; border-radius: 4px; width: 100%; box-sizing: border-box; background: white; }
 
-        .button-container { display: flex; gap: 4px; align-items: center; }
-        .action-btn { padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border: 1px solid #ccc; white-space: nowrap; }
+        .button-container { display: flex; gap: 4px; align-items: center; width: 100%; justify-content: flex-start; }
+        .action-btn { padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border: 1px solid #ccc; white-space: nowrap; display: inline-block; }
         .return-btn { background: #e0e0e0; color: #333; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
 
-        select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; }
+        select.table-select { padding: 2px 4px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; width: 100%; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
         select.table-select:disabled { 
             background: transparent; 
             border: none; 
@@ -110,7 +108,7 @@
     
     <div class="top-bar">
         <div class="search-container">
-            <label for="search-box">🔍 データ検索：</label>
+            <label for="search-box">🔍 iPad内データ検索：</label>
             <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、使用者名、用途、備考でリアルタイムに絞り込み...">
         </div>
         <button id="global-lock-toggle" class="btn-ui lock-btn">ここを押して編集</button>
@@ -238,14 +236,18 @@
         yearsConfig.forEach(y => {
             const yearVal = y.yearValue;
             const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
+            
+            // 💡 修正：その年度のiPadデータの中から status が "available"（🟢公開）になっている総数を自動抽出計算
+            const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
 
             const block = document.createElement('div');
             block.className = "year-summary-box";
 
+            // 💡 修正：「使用可能台数」のインプットを撤去し、自動集計したテキスト（liveRentableCount）が直接反映される構造に変更
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
-                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;"></label>
+                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;">表示名:</label>
                         <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
                             onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
@@ -259,7 +261,7 @@
                     </div>
                     <div class="meta-input-group">
                         <label>使用可能台数</label>
-                        <input type="number" value="${y.rentableCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'rentableCount', this.value)">
+                        <span class="static-count-text">${liveRentableCount} 台 (自動集計)</span>
                     </div>
                     <div class="meta-input-group">
                         <label>管理担当者の名前</label>
@@ -273,18 +275,18 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 4%;">選択</th>
-                            <th style="width: 7%;">年度-No</th>
-                            <th style="width: 20%;">iPadの名前 / 備考欄</th>
-                            <th style="width: 15%;">シリアル番号</th>
-                            <th style="width: 11%;">現在の状態</th>
+                            <th style="width: 3%;">選択</th>
+                            <th style="width: 6%;">年度-No</th>
+                            <th style="width: 17%;">iPadの名前 / 備考欄</th>
+                            <th style="width: 11%;">シリアル番号</th>
+                            <th style="width: 9%;">現在の状態</th>
                             <th style="width: 10%;">使用者氏名</th>
-                            <th style="width: 11%;">用途</th>
+                            <th style="width: 10%;">用途</th>
                             <th style="width: 9%;">返却予定日</th>
                             <th style="width: 6%;">使用</th>
-                            <th style="width: 6%;">ケーブル</th>
-                            <th style="width: 6%;">ペン</th>
-                            <th style="width: 10%;">操作</th>
+                            <th style="width: 5%;">ケーブル</th>
+                            <th style="width: 5%;">ペン</th>
+                            <th style="width: 9%;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-year-${yearVal}"></tbody>
@@ -292,7 +294,6 @@
             `;
             container.appendChild(block);
 
-            // 年度表示名インプットもロック時は枠線を消すためのCSSクラス補助
             const titleInput = block.querySelector('.year-label-input');
             if (!window.isEditingUnlocked && titleInput) {
                 titleInput.style.border = 'none';
@@ -529,11 +530,11 @@
                 return alert("【エラー】その年度の数値（Value）はすでに登録されています。");
             }
 
+            // 💡 rentableCount（使用可能台数）のフィールドは不要になったため、マスタの初期構造からも除外
             const nextYears = [...currentList, { 
                 yearValue: Number(v), 
                 yearLabel: l, 
                 totalPurchased: 0, 
-                rentableCount: 0, 
                 managerName: "", 
                 freshmenCount: 0 
             }];
