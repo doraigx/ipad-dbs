@@ -161,7 +161,7 @@
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">❌ メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
-                            // 💡 修正：他人のプライバシーを守るため、使用中の端末情報から借りている人の名前表示を完全に排除
+                            // 💡 修正：残っていた古い記述をクリアし、名前を一切出さず完全に「🔴 使用中」のみの表記に統一
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用中</div>`;
                         } else {
