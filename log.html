@@ -102,19 +102,22 @@
                 yearLogs.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
 
                 const section = document.createElement('div');
+                // 💡 履歴ログテーブルに「ケーブル」と「Pencil」の列を追加
                 section.innerHTML = `
                     <h2>📱 iPad製品 履歴ログ [${yearTitle}]</h2>
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 10%;">管理番号</th>
-                                <th style="width: 20%;">型番 / モデル名</th>
-                                <th style="width: 10%;">状態</th>
-                                <th style="width: 14%;">使用者氏名</th>
-                                <th style="width: 16%;">用途</th>
-                                <th style="width: 10%;">返却予定日</th>
-                                <th style="width: 10%;">使用開始日時</th>
-                                <th style="width: 10%;">返却日時</th>
+                                <th style="width: 9%;">管理番号</th>
+                                <th style="width: 17%;">型番 / モデル名</th>
+                                <th style="width: 8%;">状態</th>
+                                <th style="width: 12%;">使用者氏名</th>
+                                <th style="width: 14%;">用途</th>
+                                <th style="width: 9%;">返却予定日</th>
+                                <th style="width: 6%;">ケーブル</th>
+                                <th style="width: 7%;">Pencil</th>
+                                <th style="width: 9%;">使用開始日時</th>
+                                <th style="width: 9%;">返却日時</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-log-ipad-${yearTitle}"></tbody>
@@ -141,6 +144,10 @@
                         ? `<span class="badge badge-rent">使用中</span>` 
                         : `<span class="badge badge-return">返却済</span>`;
 
+                    // 💡 目立ちすぎないフラットなテキストで付属品の追跡データを出力
+                    const cableText = data.hasCableIncluded !== false ? "付属" : "なし";
+                    const pencilText = data.hasPencilOut === true ? "使用中" : "なし";
+
                     row.innerHTML = `
                         <td><strong>${data.itemId}</strong></td>
                         <td>${data.model || "未設定"}</td>
@@ -148,6 +155,8 @@
                         <td><strong>${data.borrowedByName || "—"}</strong></td>
                         <td><mark>${data.purpose || "—"}</mark></td>
                         <td><b style="color:#0d47a1;">${data.returnPlanDate || "—"}</b></td>
+                        <td>${cableText}</td>
+                        <td>${pencilText}</td>
                         <td style="font-size:0.75rem; font-weight:500; color:#555;">${rentDateStr}</td>
                         <td style="font-size:0.75rem; font-weight:500; color:#2e7d32;">${returnDateStr}</td>
                     `;
