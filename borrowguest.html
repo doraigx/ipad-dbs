@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPad使用申請システム（ゲスト・共用）</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        
+        .container { max-width: 100%; margin: 0 auto; padding: 0 10px; }
+        h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
+        h2 { font-size: 1.3rem; margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid #2196f3; }
+        
+        input, select, textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; margin-top: 5px; }
+        button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; width: 100%; }
+        
+        .ipad-tile { height: 135px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
+        .ipad-tile:hover { transform: translateY(-3px); }
+        
+        .available { background: #4caf50; color: white; } 
+        .borrowed { background: #f44336; color: white; }  
+        
+        .tile-info { font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        .tile-model { font-size: 0.65rem; opacity: 0.9; font-weight: normal; width: 100%; word-break: break-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; max-height: 2.4em; margin: auto 0; }
+        .tile-sub-info { font-size: 0.62rem; font-weight: normal; opacity: 0.8; margin-top: 2px; color: var(--text); }
+        
+        .empty-message { grid-column: 1 / -1; background: #1e1e1e; color: #666; text-align: center; padding: 20px; border-radius: 8px; font-size: 0.9rem; border: 1px dashed #333; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 450px; width: 90%; color: #fff; }
+        .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
+        .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 15px; font-weight: normal; padding-left: 2px; }
+        
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { font-size: 0.85rem; color: #ccc; font-weight: bold; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .cancel-btn { background: #555; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📱 iPad 使用申請（ゲスト・共用端末用）</h1>
+
+    <h2>使用・返却</h2>
+    <div id="year-sections-container">
+        <p style="text-align: center; color: #888;">機材データをリアルタイム読み込み中...</p>
+    </div>
+</div>
+
+<div id="borrow-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title" id="modal-item-title">iPad使用申請</div>
+        <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
+        
+        <div class="modal-field">
+            <label for="borrow-username">使用者氏名</label>
+            <input type="text" id="borrow-username" placeholder="例: 山田太郎">
+        </div>
+        <div class="modal-field">
+            <label for="borrow-purpose">用途欄</label>
+            <input type="text" id="borrow-purpose" placeholder="例: 授業利用、研究開発など">
+        </div>
+        <div class="modal-field">
+            <label for="borrow-return-plan">返却予定日</label>
+            <input type="date" id="borrow-return-plan">
+        </div>
+        <div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+            <input type="checkbox" id="borrow-pencil" style="width: auto; margin-top: 0; transform: scale(1.3);">
+            <label for="borrow-pencil" style="cursor: pointer;">Pencilを一緒に使用する</label>
+        </div>
+        <div class="modal-buttons">
+            <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
+            <button id="modal-submit-btn">使用を確定する</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
+        authDomain: "ipad-database-2c20b.firebaseapp.com",
+        projectId: "ipad-database-2c20b",
+        storageBucket: "ipad-database-2c20b.firebasestorage.app",
+        messagingSenderId: "558760087924",
+        appId: "1:558760087924:web:857e8e8096d78671c49c21",
+        measurementId: "G-CEM2VYFRN9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentTargetDocId = ""; 
+
+    // アカウントなしで即時データグリッドの初期化処理を起動
+    initGuestIpadGrids();
+
+    function initGuestIpadGrids() {
+        const sectionsContainer = document.getElementById('year-sections-container');
+
+        onSnapshot(doc(db, "settings", "years_config"), (yearsSnap) => {
+            sectionsContainer.innerHTML = "";
+            let yearsList = [];
+            if (yearsSnap.exists()) {
+                yearsList = yearsSnap.data().years || [];
+            }
+            yearsList.sort((a, b) => b.yearValue - a.yearValue);
+
+            yearsList.forEach(y => {
+                const yearBlock = document.createElement('div');
+                yearBlock.innerHTML = `
+                    <h2>${y.yearLabel}</h2>
+                    <div class="grid" id="grid-year-${y.yearValue}"></div>
+                `;
+                sectionsContainer.appendChild(yearBlock);
+            });
+
+            onSnapshot(collection(db, "ipads"), (snapshot) => {
+                yearsList.forEach(y => {
+                    const g = document.getElementById(`grid-year-${y.yearValue}`);
+                    if (g) g.innerHTML = "";
+                });
+
+                const itemsByYear = {};
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const docId = docSnap.id;
+                    if (data.status === "hidden") return; // 非公開データは除外
+
+                    const yVal = data.yearValue;
+                    if (!itemsByYear[yVal]) itemsByYear[yVal] = [];
+                    itemsByYear[yVal].push({ id: docId, data: data });
+                });
+
+                yearsList.forEach(y => {
+                    const gridElement = document.getElementById(`grid-year-${y.yearValue}`);
+                    if (!gridElement) return;
+
+                    const list = itemsByYear[y.yearValue] || [];
+                    list.sort((a, b) => Number(a.data.itemNo) - Number(b.data.itemNo));
+
+                    if (list.length === 0) {
+                        gridElement.innerHTML = `<div class="empty-message">この年度に使用可能なiPadはありません。</div>`;
+                        return;
+                    }
+
+                    list.forEach(item => {
+                        const mainTile = document.createElement('div');
+                        mainTile.className = "ipad-tile";
+                        const itemNum = item.data.itemNo || item.id;
+                        
+                        const cableNoticeHTML = item.data.hasCableIncluded === false ? `<div class="tile-sub-info">ケーブルなし</div>` : "";
+
+                        if (item.data.isAvailable === false) {
+                            mainTile.classList.add("borrowed");
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">❌ メンテナンス中</div>`;
+                        } else if (item.data.status === "borrowed") {
+                            // ゲストページでは誰が借りているかに関わらず一律「使用不可」として赤タイル化
+                            mainTile.classList.add("borrowed");
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用中 (${item.data.borrowedByName || "登録あり"})</div>`;
+                        } else {
+                            mainTile.classList.add("available");
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🟢 使用可能</div>`;
+                            mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false);
+                        }
+                        gridElement.appendChild(mainTile);
+                    });
+                });
+            });
+        });
+    }
+
+    function openBorrowModal(docId, itemNo, modelName, hasCable) {
+        currentTargetDocId = docId;
+        document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
+        
+        const subInfoContainer = document.getElementById('modal-item-sub-info');
+        if (!hasCable) {
+            subInfoContainer.innerText = "型番: " + modelName + "（ケーブルなし）";
+        } else {
+            subInfoContainer.innerText = "型番: " + modelName;
+        }
+
+        document.getElementById('borrow-username').value = "";
+        document.getElementById('borrow-purpose').value = "";
+        document.getElementById('borrow-return-plan').value = "";
+        document.getElementById('borrow-pencil').checked = false;
+        document.getElementById('borrow-modal').style.display = "flex";
+    }
+
+    document.getElementById('modal-cancel-btn').onclick = () => {
+        document.getElementById('borrow-modal').style.display = "none";
+    };
+
+    document.getElementById('modal-submit-btn').onclick = async () => {
+        const inputName = document.getElementById('borrow-username').value.trim();
+        const purpose = document.getElementById('borrow-purpose').value.trim();
+        const returnPlan = document.getElementById('borrow-return-plan').value;
+        const includePencil = document.getElementById('borrow-pencil').checked;
+
+        if (!inputName) return alert("使用者氏名を入力してください。");
+        if (!purpose) return alert("用途を入力してください。");
+        if (!returnPlan) return alert("返却予定日を選択してください。");
+
+        try {
+            const rentTime = new Date();
+            const ipadDocRef = doc(db, "ipads", currentTargetDocId);
+            const snap = await getDoc(ipadDocRef);
+            
+            const currentModel = snap.exists() ? snap.data().model : "iPad";
+            const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
+            const currentCableStatus = snap.exists() ? (snap.data().hasCableIncluded !== false) : true;
+
+            // データベースの該当端末をロック
+            await updateDoc(ipadDocRef, {
+                status: "borrowed",
+                borrowedByName: inputName,
+                borrowedAt: rentTime,
+                purpose: purpose,
+                returnPlanDate: returnPlan,
+                hasPencilOut: includePencil
+            });
+
+            // 履歴ログ用コレクションへ自動永続保存（log.html、admin.htmlと同期）
+            const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
+            await setDoc(doc(db, "logs", logId), {
+                category: "ipads",
+                itemId: currentTargetDocId,
+                yearValue: currentYearValue, 
+                model: currentModel,
+                status: "borrowed",
+                borrowedBy: "ゲスト・共用端末", 
+                borrowedByName: inputName,
+                borrowedAt: rentTime,
+                returnedAt: null,
+                purpose: purpose,
+                returnPlanDate: returnPlan,
+                hasCableIncluded: currentCableStatus, 
+                hasPencilOut: includePencil
+            });
+
+            document.getElementById('borrow-modal').style.display = "none";
+            alert("使用申請の確定処理が正常に完了しました！");
+        } catch (e) { alert("申請の処理中にエラーが発生しました。"); }
+    };
+</script>
+</body>
+</html>
