@@ -26,8 +26,27 @@
         .grid-info-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
         .meta-input-group { display: flex; flex-direction: column; gap: 4px; }
         .meta-input-group label { font-size: 0.75rem; font-weight: bold; color: #666; }
-        .meta-input-group input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #f9f9f9; }
-        .meta-input-group input:disabled { background: #eee; color: #666; cursor: not-allowed; border-color: #ddd; }
+        
+        /* 💡 修正：表の上の管理者名入力エリア(meta-input-group input)のロック・編集時共通外見制御 */
+        .meta-input-group input { padding: 6px 10px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; }
+        
+        /* ロック中（disabled状態）はテキストボックスの枠、背景、立体感を完全に消し去ってプレーンテキスト化 */
+        .meta-input-group input:disabled {
+            background: transparent !important;
+            border: none !important;
+            padding: 6px 0;
+            cursor: default;
+            font-weight: bold;
+            opacity: 1;
+            box-shadow: none !important;
+        }
+        
+        /* ロック解除編集モード時は通常の入力欄として白ボックス化 */
+        .unlocked .meta-input-group input {
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
 
         .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
@@ -223,12 +242,11 @@
             const block = document.createElement('div');
             block.className = "year-summary-box";
 
-            // 💡 修正：「本体」から「使用」ヘッダーに変更
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
                         <label style="font-size:0.9rem; color:#333; white-space:nowrap;">表示名:</label>
-                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} 
+                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
                             onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
@@ -273,6 +291,14 @@
                 </table>
             `;
             container.appendChild(block);
+
+            // 年度表示名インプットもロック時は枠線を消すためのCSSクラス補助
+            const titleInput = block.querySelector('.year-label-input');
+            if (!window.isEditingUnlocked && titleInput) {
+                titleInput.style.border = 'none';
+                titleInput.style.background = 'transparent';
+                titleInput.style.padding = '4px 0';
+            }
 
             const tbody = document.getElementById(`tbody-year-${yearVal}`);
             ipadsInYear.sort((a,b) => Number(a.itemNo) - Number(b.itemNo));
@@ -342,7 +368,6 @@
                     notesHTML = `<span class="notes-empty">クリックして備考を入力...</span>`;
                 }
 
-                // 💡 修正：「使用」列に判定変更イベント（handleAvailabilityChange）をバインド
                 row.innerHTML = `
                     <td style="text-align:center;">${checkboxHTML}</td>
                     <td><strong>${id}</strong></td>
@@ -381,18 +406,15 @@
         window.refreshBatchPanelUI();
     }
 
-    // 💡 新規：使用不可が選択された場合に自動で『⚫ 非公開』ステータスへ強制スイッチさせる連動ロジック
     window.handleAvailabilityChange = async function(id, value) {
         const isAvailable = (value === 'true');
         try {
             if (!isAvailable) {
-                // 不可にされた場合はisAvailableをfalseにし、同時にstatusを非公開(hidden)に更新
                 await updateDoc(doc(db, "ipads", id), { 
                     isAvailable: false,
                     status: "hidden"
                 });
             } else {
-                // 可能に戻された場合はisAvailableをtrueに更新
                 await updateDoc(doc(db, "ipads", id), { 
                     isAvailable: true 
                 });
