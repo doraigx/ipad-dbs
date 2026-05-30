@@ -90,10 +90,6 @@
             <label for="ins-year">対象年度</label>
             <select id="ins-year"></select>
         </div>
-        <div class="form-group" style="flex: 0.4;">
-            <label for="ins-no">通し番号(No)</label>
-            <input type="number" id="ins-no" placeholder="例: 1">
-        </div>
         <div class="form-group">
             <label for="ins-model">iPadの名前 / モデル名</label>
             <input type="text" id="ins-model" placeholder="例: iPad 第6世代">
@@ -178,7 +174,6 @@
         });
     }
 
-    // 年度別のメタ数値ボックスおよび一覧テーブルを構築
     function renderDashboardStructure() {
         const container = document.getElementById('dynamic-year-blocks');
         container.innerHTML = "";
@@ -191,7 +186,6 @@
             const block = document.createElement('div');
             block.className = "year-summary-box";
 
-            // メタ数値の入力無効・有効化制御
             const disabledAttr = isEditingUnlocked ? "" : "disabled";
 
             block.innerHTML = `
@@ -238,7 +232,6 @@
             `;
             container.appendChild(block);
 
-            // テーブル内データ描画
             const tbody = document.getElementById(`tbody-year-${yearVal}`);
             ipadsInYear.sort((a,b) => Number(a.itemNo) - Number(b.itemNo));
 
@@ -314,7 +307,6 @@
         });
     }
 
-    // セルインライン編集
     window.startEditCell = function(id, field, element) {
         const currentText = element.innerText === "—" ? "" : element.innerText;
         const input = document.createElement('input');
@@ -337,7 +329,6 @@
         try { await updateDoc(doc(db, "ipads", id), { [field]: value }); } catch(e) {}
     };
 
-    // 年度枠追加処理
     document.getElementById('add-year-btn').onclick = async function() {
         const v = document.getElementById('new-year-value').value.trim();
         const l = document.getElementById('new-year-label').value.trim();
@@ -365,24 +356,30 @@
         await setDoc(doc(db, "settings", "years_config"), { years: updated });
     };
 
-    // iPadデータ新規登録
+    // 💡 改善：選択した年度内のドキュメントから最大番号を割り出し、完全に自動加算して新規追加するロジック
     document.getElementById('add-ipad-btn').onclick = async function() {
         const yVal = document.getElementById('ins-year').value;
-        const noVal = document.getElementById('ins-no').value.trim();
-        const model = document.getElementById('new-item-model').value.trim();
+        const model = document.getElementById('ins-model').value.trim();
         const serial = document.getElementById('ins-serial').value.trim();
 
-        if (!noVal || !model) return alert("通し番号とモデル名は必須です。");
-        const docId = `${yVal}-${noVal}`; // 💡 識別IDを「年度-No」の形式に設定
+        if (!model) return alert("iPadの名前/モデル名は必須です。");
 
         try {
-            const ref = doc(db, "ipads", docId);
-            const snap = await getDoc(ref);
-            if (snap.exists()) return alert(`重複エラー: ${docId} は既に登録されています。`);
+            // 該当する年度に所属している現在の全iPadデータを抽出
+            const ipadsInTargetYear = rawIpads.filter(item => item.yearValue == Number(yVal));
+            
+            let nextNo = 1;
+            if (ipadsInTargetYear.length > 0) {
+                // 現在登録されている通し番号（itemNo）の中から最大値を取得
+                const maxNo = Math.max(...ipadsInTargetYear.map(item => Number(item.itemNo || 0)));
+                nextNo = maxNo + 1;
+            }
 
-            await setDoc(ref, {
+            const docId = `${yVal}-${nextNo}`; // 💡 「年度-自動連番」の固定ID形式
+
+            await setDoc(doc(db, "ipads", docId), {
                 yearValue: Number(yVal),
-                itemNo: Number(noVal),
+                itemNo: nextNo,
                 model: model,
                 serialNo: serial || "—",
                 status: "available",
@@ -393,10 +390,14 @@
                 hasCableIncluded: true,
                 hasPencilOut: false
             });
-            document.getElementById('ins-no').value = "";
-            document.getElementById('new-item-model').value = "";
+            
+            document.getElementById('ins-model').value = "";
             document.getElementById('ins-serial').value = "";
-        } catch(e) { alert("登録に失敗しました。"); }
+            alert(`正常に追加されました！ (ID: No.${docId})`);
+        } catch(e) { 
+            console.error(e);
+            alert("登録に失敗しました。"); 
+        }
     };
 
     window.deleteIpad = async function(id) {
