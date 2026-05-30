@@ -20,10 +20,24 @@
         .log-nav-btn { display: flex; align-items: center; justify-content: center; padding: 0 20px; background: #0d47a1; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; text-decoration: none; white-space: nowrap; transition: 0.2s; }
         .log-nav-btn:hover { background: #0a3680; }
 
-        .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; }
-        .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
-        .summary-title { font-weight: bold; font-size: 1rem; color: #333; }
-        .grid-info-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+        /* 💡 修正：アコーディオン対応型コンテナ外枠 */
+        .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        
+        /* 💡 修正：クリックして開閉させる年度のヘッダーバー */
+        .summary-header { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 12px 15px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .summary-header:hover { background: #f1f5f9; }
+        
+        /* 💡 修正：右端に矢印マークを出すためのスタイル表現 */
+        .header-title-wrapper { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .accordion-arrow { font-size: 0.75rem; color: #666; transition: transform 0.2s ease; }
+        .year-summary-box.open .accordion-arrow { transform: rotate(180deg); }
+
+        /* 💡 修正：アコーディオンの内部開閉コンテンツエリア（高さを動的に制御） */
+        .accordion-content { max-height: 0px; overflow: hidden; transition: max-height 0.25s ease-out; background: #fff; }
+        .year-summary-box.open .accordion-content { max-height: 2000px; transition: max-height 0.4s ease-in; }
+        .accordion-inner-padding { padding: 15px; }
+
+        .grid-info-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
         .meta-input-group { display: flex; flex-direction: column; gap: 4px; }
         .meta-input-group label { font-size: 0.75rem; font-weight: bold; color: #666; }
         
@@ -55,7 +69,7 @@
         .lock-btn.unlocked { background: #e91e63; }
         .add-btn { background: #2196f3; color: white; height: 36px; line-height: 36px; padding: 0 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; margin-bottom: 25px; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; table-layout: fixed; }
         th, td { padding: 8px 8px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.85rem; }
         
@@ -174,6 +188,9 @@
     let yearsConfig = [];
     let rawIpads = [];
     let selectedIpadIds = new Set();
+    
+    // 💡 どの年度アコーディオンが開いているかの状態をキープする配列（リアルタイム描画バグ対策）
+    let openedYearIds = new Set();
 
     document.getElementById('global-lock-toggle').onclick = function() {
         window.isEditingUnlocked = !window.isEditingUnlocked;
@@ -235,59 +252,70 @@
         yearsConfig.forEach(y => {
             const yearVal = y.yearValue;
             const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
-            
             const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
 
-            const block = document.createElement('div');
-            block.className = "year-summary-box";
+            // 💡 修正：記憶された開閉状態配列（openedYearIds）をチェックして、openクラスを付与
+            const isOpenClass = openedYearIds.has(yearVal) ? "open" : "";
 
+            const block = document.createElement('div');
+            block.className = `year-summary-box ${isOpenClass}`;
+            block.id = `box-year-${yearVal}`;
+
+            // 💡 修正：ヘッダー部分をクリックした際に、中のテーブルだけが折りたたまれるDOM構造に組み替え
             block.innerHTML = `
-                <div class="summary-header">
-                    <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
-                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;"></label>
-                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
-                            onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
-                            onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
+                <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
+                    <div class="header-title-wrapper">
+                        <span class="accordion-arrow">▼</span>
+                        <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;" onclick="event.stopPropagation();">
+                            <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
+                                onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
+                                onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
+                        </div>
                     </div>
-                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
+                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
                 </div>
-                <div class="grid-info-inputs">
-                    <div class="meta-input-group">
-                        <label>購入台数</label>
-                        <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
-                    </div>
-                    <div class="meta-input-group">
-                        <label>使用可能台数</label>
-                        <span class="static-count-text">${liveRentableCount} 台 </span>
-                    </div>
-                    <div class="meta-input-group">
-                        <label>管理担当者の名前</label>
-                        <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
-                    </div>
-                    <div class="meta-input-group">
-                        <label>新入生の数</label>
-                        <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
+                
+                <div class="accordion-content">
+                    <div class="accordion-inner-padding">
+                        <div class="grid-info-inputs">
+                            <div class="meta-input-group">
+                                <label>購入台数</label>
+                                <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
+                            </div>
+                            <div class="meta-input-group">
+                                <label>使用可能台数</label>
+                                <span class="static-count-text">${liveRentableCount} 台</span>
+                            </div>
+                            <div class="meta-input-group">
+                                <label>管理担当者の名前</label>
+                                <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
+                            </div>
+                            <div class="meta-input-group">
+                                <label>新入生の数</label>
+                                <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 3%;">選択</th>
+                                    <th style="width: 6%;">年度-No</th>
+                                    <th style="width: 17%;">iPadの名前 / 備考欄</th>
+                                    <th style="width: 11%;">シリアル番号</th>
+                                    <th style="width: 9%;">現在の状態</th>
+                                    <th style="width: 10%;">使用者氏名</th>
+                                    <th style="width: 10%;">用途</th>
+                                    <th style="width: 9%;">返却予定日</th>
+                                    <th style="width: 6%;">使用</th>
+                                    <th style="width: 5%;">ケーブル</th>
+                                    <th style="width: 5%;">ペン</th>
+                                    <th style="width: 9%;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-year-${yearVal}"></tbody>
+                        </table>
                     </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 3%;">選択</th>
-                            <th style="width: 6%;">年度-No</th>
-                            <th style="width: 17%;">iPadの名前 / 備考欄</th>
-                            <th style="width: 11%;">シリアル番号</th>
-                            <th style="width: 9%;">現在の状態</th>
-                            <th style="width: 10%;">使用者氏名</th>
-                            <th style="width: 10%;">用途</th>
-                            <th style="width: 9%;">返却予定日</th>
-                            <th style="width: 6%;">使用</th>
-                            <th style="width: 5%;">ケーブル</th>
-                            <th style="width: 5%;">ペン</th>
-                            <th style="width: 9%;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-year-${yearVal}"></tbody>
-                </table>
             `;
             container.appendChild(block);
 
@@ -404,18 +432,29 @@
         window.refreshBatchPanelUI();
     }
 
-    // 💡 修正：不可で非公開（hidden）へ、可能で公開（available）へ完全に双方向スイッチ連動させるロジック
+    // 💡 新規：アコーディオンブロックをクリックした際に開閉状態をメモリ保持させて滑らかに切り替える関数
+    window.toggleAccordionBlock = function(yearValue) {
+        const box = document.getElementById(`box-year-${yearValue}`);
+        if (!box) return;
+
+        if (openedYearIds.has(yearValue)) {
+            openedYearIds.delete(yearValue);
+            box.classList.remove('open');
+        } else {
+            openedYearIds.add(yearValue);
+            box.classList.add('open');
+        }
+    };
+
     window.handleAvailabilityChange = async function(id, value) {
         const isAvailable = (value === 'true');
         try {
             if (!isAvailable) {
-                // 不可にされた場合はisAvailableをfalseにし、同時にstatusを非公開(hidden)に更新
                 await updateDoc(doc(db, "ipads", id), { 
                     isAvailable: false,
                     status: "hidden"
                 });
             } else {
-                // 💡 改善：可能に戻された場合はisAvailableをtrueにし、同時にstatusを即座に公開(available)へ自動復帰
                 await updateDoc(doc(db, "ipads", id), { 
                     isAvailable: true,
                     status: "available"
