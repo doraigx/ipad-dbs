@@ -128,7 +128,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -155,7 +155,6 @@
             document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
         } else {
             onSnapshot(doc(db, "users", user.uid), (docSnap) => {
-                let nameInputHTML = "";
                 myCustomName = user.displayName;
 
                 if (docSnap.exists()) {
@@ -233,7 +232,6 @@
         const myGrid = document.getElementById('my-ipad-grid');
         const sectionsContainer = document.getElementById('year-sections-container');
 
-        // ① 年度設定の構造定義を同期取得
         onSnapshot(doc(db, "settings", "years_config"), (yearsSnap) => {
             sectionsContainer.innerHTML = "";
             let yearsList = [];
@@ -242,7 +240,6 @@
             }
             yearsList.sort((a, b) => b.yearValue - a.yearValue);
 
-            // 年度ごとのアコーディオン枠組みを先に構築
             yearsList.forEach(y => {
                 const yearBlock = document.createElement('div');
                 yearBlock.innerHTML = `
@@ -252,10 +249,8 @@
                 sectionsContainer.appendChild(yearBlock);
             });
 
-            // ② iPadの全ドキュメントをリアルタイム監視
             onSnapshot(collection(db, "ipads"), (snapshot) => {
                 myGrid.innerHTML = "";
-                // 各年度のグリッドを一旦クリア
                 yearsList.forEach(y => {
                     const g = document.getElementById(`grid-year-${y.yearValue}`);
                     if (g) g.innerHTML = "";
@@ -268,12 +263,10 @@
                     const data = docSnap.data();
                     const docId = docSnap.id;
                     
-                    // 非公開（statusがhidden）のデータは一般画面に一切出さない
                     if (data.status === "hidden") return;
 
                     const yVal = data.yearValue;
 
-                    // 上部の「借りているiPad」への出力
                     if (data.status === "borrowed" && data.borrowedByName === myCustomName) {
                         myBorrowCount++;
                         const myTile = document.createElement('div');
@@ -287,12 +280,10 @@
                         myGrid.appendChild(myTile);
                     }
 
-                    // 年度別の仕分け配列に格納
                     if (!itemsByYear[yVal]) itemsByYear[yVal] = [];
                     itemsByYear[yVal].push({ id: docId, data: data });
                 });
 
-                // 各年度アコーディオン内にタイルを番号順で展開
                 yearsList.forEach(y => {
                     const gridElement = document.getElementById(`grid-year-${y.yearValue}`);
                     if (!gridElement) return;
@@ -310,7 +301,6 @@
                         mainTile.className = "ipad-tile";
                         const itemNum = item.data.itemNo || item.id;
 
-                        // 貸出不可フラグ（isAvailableがfalse）の機材
                         if (item.data.isAvailable === false) {
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">❌ メンテナンス中</div>`;
@@ -339,7 +329,6 @@
         });
     }
 
-    // 貸出フォーム制御
     function openBorrowModal(docId, itemNo, modelName) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad貸出申請 (No.${itemNo})`;
@@ -366,8 +355,8 @@
             const ipadDocRef = doc(db, "ipads", currentTargetDocId);
             const snap = await getDoc(ipadDocRef);
             const currentModel = snap.exists() ? snap.data().model : "iPad";
+            const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
 
-            // 1. マスターデータの更新
             await updateDoc(ipadDocRef, {
                 status: "borrowed",
                 borrowedByName: myCustomName,
@@ -377,11 +366,11 @@
                 hasPencilOut: includePencil
             });
 
-            // 2. 永続不変ログの発行
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
             await setDoc(doc(db, "logs", logId), {
                 category: "ipads",
                 itemId: currentTargetDocId,
+                yearValue: currentYearValue, 
                 model: currentModel,
                 status: "borrowed",
                 borrowedBy: "—", 
@@ -395,10 +384,12 @@
 
             document.getElementById('borrow-modal').style.display = "none";
             alert("貸出処理が完了しました！");
-        } catch (e) { alert("貸出に失敗しました。"); }
+        } catch (e) { 
+            console.error(e);
+            alert("貸出に失敗しました。"); 
+        }
     };
 
-    // 単体返却処理
     async function handleSingleReturn(docId) {
         if (!confirm("このiPadを返却しますか？")) return;
         try {
@@ -422,7 +413,6 @@
         } catch (e) { alert("返却に失敗しました。"); }
     }
 
-    // 💡 複数一括返却の実行ロジック
     document.getElementById('execute-batch-return').onclick = async () => {
         const checkedBoxes = document.querySelectorAll('#my-ipad-grid .select-box:checked');
         if (checkedBoxes.length === 0) return alert("返却したいiPadにチェックを入れてください。");
