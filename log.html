@@ -102,7 +102,6 @@
                 yearLogs.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
 
                 const section = document.createElement('div');
-                // 💡 履歴ログテーブルに「ケーブル」と「Pencil」の列を追加
                 section.innerHTML = `
                     <h2>📱 iPad製品 履歴ログ [${yearTitle}]</h2>
                     <table>
@@ -144,9 +143,9 @@
                         ? `<span class="badge badge-rent">使用中</span>` 
                         : `<span class="badge badge-return">返却済</span>`;
 
-                    // 💡 目立ちすぎないフラットなテキストで付属品の追跡データを出力
-                    const cableText = data.hasCableIncluded !== false ? "付属" : "なし";
-                    const pencilText = data.hasPencilOut === true ? "使用中" : "なし";
+                    // 💡 修正：「付属 / なし」から「有 / 無」へ、そして「使用中」を「あり」へと表現を厳格統一
+                    const cableText = data.hasCableIncluded !== false ? "有" : "無";
+                    const pencilText = data.hasPencilOut === true ? "あり" : "なし";
 
                     row.innerHTML = `
                         <td><strong>${data.itemId}</strong></td>
