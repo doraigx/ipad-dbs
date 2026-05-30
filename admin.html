@@ -20,36 +20,38 @@
         .log-nav-btn { display: flex; align-items: center; justify-content: center; padding: 0 20px; background: #0d47a1; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; text-decoration: none; white-space: nowrap; transition: 0.2s; }
         .log-nav-btn:hover { background: #0a3680; }
 
-        /* 💡 修正：アコーディオン対応型コンテナ外枠 */
         .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         
-        /* 💡 修正：クリックして開閉させる年度のヘッダーバー */
-        .summary-header { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 12px 15px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        /* 💡 修正：ヘッダーバーを横一列にゆったり並べ、情報が詰まって見えないように調整 */
+        .summary-header { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px 15px; cursor: pointer; user-select: none; transition: background 0.2s; gap: 20px; }
         .summary-header:hover { background: #f1f5f9; }
         
-        /* 💡 修正：右端に矢印マークを出すためのスタイル表現 */
-        .header-title-wrapper { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .header-title-wrapper { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
         .accordion-arrow { font-size: 0.75rem; color: #666; transition: transform 0.2s ease; }
         .year-summary-box.open .accordion-arrow { transform: rotate(180deg); }
 
-        /* 💡 修正：アコーディオンの内部開閉コンテンツエリア（高さを動的に制御） */
         .accordion-content { max-height: 0px; overflow: hidden; transition: max-height 0.25s ease-out; background: #fff; }
         .year-summary-box.open .accordion-content { max-height: 2000px; transition: max-height 0.4s ease-in; }
-        .accordion-inner-padding { padding: 15px; }
+        .accordion-inner-padding { padding: 0 15px 15px 15px; }
 
-        .grid-info-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .meta-input-group { display: flex; flex-direction: column; gap: 4px; }
-        .meta-input-group label { font-size: 0.75rem; font-weight: bold; color: #666; }
+        /* 💡 修正：ヘッダー内部に美しく一列で収めるためのフレックスレイアウト */
+        .grid-info-inputs { display: flex; items-align: center; gap: 25px; flex: 1; justify-content: flex-start; margin-left: 20px; }
+        .meta-input-group { display: flex; flex-direction: row; gap: 6px; align-items: center; }
+        .meta-input-group label { font-size: 0.8rem; font-weight: bold; color: #555; white-space: nowrap; }
         
-        .meta-input-group input { padding: 6px 10px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; }
+        .meta-input-group input { padding: 4px 8px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; max-width: 90px; text-align: center; }
+        /* 名前入力欄だけ少し横幅を広げる */
+        .meta-input-group input[type="text"] { max-width: 140px; text-align: left; }
+
         .meta-input-group input:disabled {
             background: transparent !important;
             border: none !important;
-            padding: 6px 0;
+            padding: 4px 0;
             cursor: default;
             font-weight: bold;
             opacity: 1;
             box-shadow: none !important;
+            text-align: left;
         }
         .unlocked .meta-input-group input {
             background: #f9f9f9;
@@ -57,7 +59,7 @@
             border-radius: 4px;
         }
 
-        .static-count-text { font-size: 0.95rem; font-weight: bold; color: #0d47a1; padding: 5px 0; display: inline-block; }
+        .static-count-text { font-size: 0.85rem; font-weight: bold; color: #0d47a1; display: inline-block; white-space: nowrap; }
 
         .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
@@ -69,7 +71,7 @@
         .lock-btn.unlocked { background: #e91e63; }
         .add-btn { background: #2196f3; color: white; height: 36px; line-height: 36px; padding: 0 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 5px; font-size: 0.82rem; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 10px; font-size: 0.82rem; table-layout: fixed; }
         th, td { padding: 8px 8px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.85rem; }
         
@@ -121,13 +123,14 @@
     
     <div class="top-bar">
         <div class="search-container">
-            <label for="search-box">🔍 データ検索：</label>
+            <label for="search-box">🔍 iPad内データ検索：</label>
             <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、使用者名、用途、備考でリアルタイムに絞り込み...">
         </div>
         <button id="global-lock-toggle" class="btn-ui lock-btn">ここを押して編集</button>
         <a href="./log.html" class="log-nav-btn">使用・返却履歴ログを確認する</a>
     </div>
 
+    <!-- まとめて返却・削除ができる一括操作パネル -->
     <div class="batch-panel" id="admin-batch-panel">
         <div class="batch-panel-text" id="batch-panel-count">選択されたiPad: 0台</div>
         <div class="batch-buttons-group">
@@ -136,6 +139,7 @@
         </div>
     </div>
 
+    <!-- 年度管理設定フォーム -->
     <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
         <div class="form-group" style="flex: 0.5;">
             <label>西暦ID</label>
@@ -148,6 +152,7 @@
         <button class="add-btn" id="add-year-btn" style="background: #ff9800;">年度枠を追加</button>
     </div>
 
+    <!-- 物品追加フォーム -->
     <div class="admin-form" id="ipad-add-form">
         <div class="form-group" style="flex: 0.6;">
             <label for="ins-year">対象年度</label>
@@ -188,8 +193,6 @@
     let yearsConfig = [];
     let rawIpads = [];
     let selectedIpadIds = new Set();
-    
-    // 💡 どの年度アコーディオンが開いているかの状態をキープする配列（リアルタイム描画バグ対策）
     let openedYearIds = new Set();
 
     document.getElementById('global-lock-toggle').onclick = function() {
@@ -254,47 +257,49 @@
             const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
             const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
 
-            // 💡 修正：記憶された開閉状態配列（openedYearIds）をチェックして、openクラスを付与
             const isOpenClass = openedYearIds.has(yearVal) ? "open" : "";
 
             const block = document.createElement('div');
             block.className = `year-summary-box ${isOpenClass}`;
             block.id = `box-year-${yearVal}`;
 
-            // 💡 修正：ヘッダー部分をクリックした際に、中のテーブルだけが折りたたまれるDOM構造に組み替え
+            // 💡 改善：各項目のインプット要素群（grid-info-inputs）を丸ごとアコーディオン開閉前の「summary-header」の内部へお引越し
             block.innerHTML = `
                 <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
                     <div class="header-title-wrapper">
                         <span class="accordion-arrow">▼</span>
-                        <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;" onclick="event.stopPropagation();">
-                            <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
+                        <div class="meta-input-group" style="max-width:260px;" onclick="event.stopPropagation();">
+                            <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; width:220px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
                                 onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                                 onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                         </div>
                     </div>
+                    
+                    <!-- 💡 開く前にも常時見えている横一列のメタ情報ステータスバー -->
+                    <div class="grid-info-inputs" onclick="event.stopPropagation();">
+                        <div class="meta-input-group">
+                            <label>購入台数:</label>
+                            <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
+                        </div>
+                        <div class="meta-input-group">
+                            <label>使用可能:</label>
+                            <span class="static-count-text">${liveRentableCount} 台</span>
+                        </div>
+                        <div class="meta-input-group">
+                            <label>担当者:</label>
+                            <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
+                        </div>
+                        <div class="meta-input-group">
+                            <label>新入生数:</label>
+                            <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
+                        </div>
+                    </div>
+                    
                     ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
                 </div>
                 
                 <div class="accordion-content">
                     <div class="accordion-inner-padding">
-                        <div class="grid-info-inputs">
-                            <div class="meta-input-group">
-                                <label>購入台数</label>
-                                <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
-                            </div>
-                            <div class="meta-input-group">
-                                <label>使用可能台数</label>
-                                <span class="static-count-text">${liveRentableCount} 台</span>
-                            </div>
-                            <div class="meta-input-group">
-                                <label>管理担当者の名前</label>
-                                <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
-                            </div>
-                            <div class="meta-input-group">
-                                <label>新入生の数</label>
-                                <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
-                            </div>
-                        </div>
                         <table>
                             <thead>
                                 <tr>
@@ -432,7 +437,6 @@
         window.refreshBatchPanelUI();
     }
 
-    // 💡 新規：アコーディオンブロックをクリックした際に開閉状態をメモリ保持させて滑らかに切り替える関数
     window.toggleAccordionBlock = function(yearValue) {
         const box = document.getElementById(`box-year-${yearValue}`);
         if (!box) return;
