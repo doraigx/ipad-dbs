@@ -91,11 +91,11 @@
 
     <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
         <div class="form-group" style="flex: 0.5;">
-            <label>新年度の追加(Value)</label>
+            <label>西暦ID</label>
             <input type="number" id="new-year-value" placeholder="例: 2018">
         </div>
         <div class="form-group">
-            <label>新年度の表示名(Label)</label>
+            <label>表示名</label>
             <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）">
         </div>
         <button class="add-btn" id="add-year-btn" style="background: #ff9800;">年度枠を追加</button>
@@ -203,7 +203,6 @@
 
             const disabledAttr = isEditingUnlocked ? "" : "disabled";
 
-            // 💡 リアルタイム描画のバグを回避するため、onchangeではなく、フォーカスアウト（onblur）およびEnterキーで確定保存する安定ロジックへ完全移行
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
@@ -246,7 +245,7 @@
                             <th style="width: 7%;">本体使用</th>
                             <th style="width: 6%;">ケーブル</th>
                             <th style="width: 6%;">Pencil</th>
-                            <th style="width: 6%;">操作</th>
+                            <th style="width: 10%;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-year-${yearVal}"></tbody>
@@ -294,15 +293,22 @@
                     <option value="hidden" ${status==='hidden'?'selected':''}>⚫ 非公開</option>
                 </select>`;
 
-                let actionHTML = `<button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>`;
-                
+                // 💡 修正：状態に関係なく、すべての機材の左端にチェックボックスを100%常時表示
                 const isChecked = selectedIpadIds.has(id) ? "checked" : "";
                 let checkboxHTML = `<input type="checkbox" class="row-selector" value="${id}" ${isChecked} onchange="window.handleCheckboxClick(this)">`;
                 
+                // 💡 修正：右端の単体操作用の「返却」および「削除」ボタンの配置を完全復活
+                let actionHTML = "";
                 if (status === "borrowed") {
                     actionHTML = `
                         <div class="button-container">
                             <button class="action-btn return-btn" onclick="window.forceReturnIpad('${id}')">返却</button>
+                            <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                        </div>
+                    `;
+                } else {
+                    actionHTML = `
+                        <div class="button-container">
                             <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
                         </div>
                     `;
@@ -367,20 +373,35 @@
 
     document.getElementById('execute-admin-batch-return').onclick = async function() {
         if (selectedIpadIds.size === 0) return;
-        if (!confirm(`選択された ${selectedIpadIds.size} 台のiPadをまとめて返却済みに変更しますか？`)) return;
+        
+        // 💡 選択されたアイテムの中に実際に「使用中」のものが含まれているか確認する安全ガード
+        let targetCount = 0;
+        for (const id of selectedIpadIds) {
+            const matchIpad = rawIpads.find(item => item.id === id);
+            if (matchIpad && matchIpad.status === "borrowed") targetCount++;
+        }
+
+        if (targetCount === 0) {
+            return alert("選択された機材の中に『使用中』のiPadがありません。返却処理をスキップします。");
+        }
+
+        if (!confirm(`選択された機材のうち、使用中のiPad ${targetCount} 台をまとめて返却済みに変更しますか？`)) return;
 
         try {
             for (const id of selectedIpadIds) {
                 const ref = doc(db, "ipads", id);
-                await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
-                
-                const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", id), where("status", "==", "borrowed"));
-                const logSnap = await getDocs(logQuery);
-                logSnap.forEach((logDoc) => {
-                    updateDoc(doc(db, "logs", logDoc.id), { status: "returned", returnedAt: new Date() });
-                });
+                const snap = await getDoc(ref);
+                if (snap.exists() && snap.data().status === "borrowed") {
+                    await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
+                    
+                    const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", id), where("status", "==", "borrowed"));
+                    const logSnap = await getDocs(logQuery);
+                    logSnap.forEach((logDoc) => {
+                        updateDoc(doc(db, "logs", logDoc.id), { status: "returned", returnedAt: new Date() });
+                    });
+                }
             }
-            alert("一括返却処理がすべて正常に完了しました！");
+            alert("一括返却処理が正常に完了しました！");
             selectedIpadIds.clear();
             renderDashboardStructure();
         } catch(e) { alert("一括返却処理中にエラーが発生しました。"); }
@@ -388,7 +409,7 @@
 
     document.getElementById('execute-admin-batch-delete').onclick = async function() {
         if (selectedIpadIds.size === 0) return;
-        if (!confirm(`選択された ${selectedIpadIds.size} 台のiPadデータをデータベースから完全に「一括削除」しますか？`)) return;
+        if (!confirm(`【最重要警告】選択された ${selectedIpadIds.size} 台のiPadデータをデータベースから完全に「一括削除」しますか？この操作は戻せません。`)) return;
 
         try {
             for (const id of selectedIpadIds) { await deleteDoc(doc(db, "ipads", id)); }
@@ -497,6 +518,11 @@
             document.getElementById('ins-serial').value = "";
             alert(`正常に追加されました！ (ID: No.${docId})`);
         } catch(e) { alert("登録に失敗しました。"); }
+    };
+
+    window.deleteIpad = async function(id) {
+        if (!confirm(`【警告】${id} のiPadを完全にデータベースから削除しますか？`)) return;
+        await deleteDoc(doc(db, "ipads", id));
     };
 
     window.forceReturnIpad = async function(id) {
