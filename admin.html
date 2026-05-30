@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPad 使用管理システム - 管理者画面</title>
-    <link href="https://fonts.gstatic.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
         .container { width: 100%; max-width: 100%; margin: 0 auto; }
@@ -43,7 +43,6 @@
             border-radius: 4px;
         }
 
-        /* 💡 自動集計テキスト専用の静的なスタイル表現 */
         .static-count-text { font-size: 0.95rem; font-weight: bold; color: #0d47a1; padding: 5px 0; display: inline-block; }
 
         .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
@@ -237,13 +236,11 @@
             const yearVal = y.yearValue;
             const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
             
-            // 💡 修正：その年度のiPadデータの中から status が "available"（🟢公開）になっている総数を自動抽出計算
             const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
 
             const block = document.createElement('div');
             block.className = "year-summary-box";
 
-            // 💡 修正：「使用可能台数」のインプットを撤去し、自動集計したテキスト（liveRentableCount）が直接反映される構造に変更
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
@@ -407,17 +404,21 @@
         window.refreshBatchPanelUI();
     }
 
+    // 💡 修正：不可で非公開（hidden）へ、可能で公開（available）へ完全に双方向スイッチ連動させるロジック
     window.handleAvailabilityChange = async function(id, value) {
         const isAvailable = (value === 'true');
         try {
             if (!isAvailable) {
+                // 不可にされた場合はisAvailableをfalseにし、同時にstatusを非公開(hidden)に更新
                 await updateDoc(doc(db, "ipads", id), { 
                     isAvailable: false,
                     status: "hidden"
                 });
             } else {
+                // 💡 改善：可能に戻された場合はisAvailableをtrueにし、同時にstatusを即座に公開(available)へ自動復帰
                 await updateDoc(doc(db, "ipads", id), { 
-                    isAvailable: true 
+                    isAvailable: true,
+                    status: "available"
                 });
             }
         } catch(e) { console.error(e); }
@@ -530,7 +531,6 @@
                 return alert("【エラー】その年度の数値（Value）はすでに登録されています。");
             }
 
-            // 💡 rentableCount（使用可能台数）のフィールドは不要になったため、マスタの初期構造からも除外
             const nextYears = [...currentList, { 
                 yearValue: Number(v), 
                 yearLabel: l, 
