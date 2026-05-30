@@ -20,13 +20,17 @@
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { background-color: #0d47a1; color: white; font-weight: bold; font-size: 0.85rem; }
         
+        /* 💡 ログ画面用の背景色スタイル連動 */
+        tr.log-row-rent { background-color: #ffebee; }   /* 未返却（使用中）：薄い赤 */
+        tr.log-row-return { background-color: #e8f5e9; } /* 返却済み：薄い緑 */
+        tr:hover { filter: brightness(0.97); }
+        
         .badge { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem; color: white; display: inline-block; }
         .badge-ipad { background: #2196f3; }
         .badge-other { background: #9c27b0; }
         .badge-rent { background: #f44336; }
         .badge-return { background: #4caf50; }
         
-        tr:hover { background-color: #f4f9ff; }
         mark { background: #ffeb3b; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; }
         .empty-log-msg { text-align: center; color: #888; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     </style>
@@ -62,7 +66,6 @@
     const db = getFirestore(app);
     const wrapper = document.getElementById('log-sections-wrapper');
 
-    // 💡 リアルタイム監視を維持し、サーバー側の再読み込み不要で反映させます
     onSnapshot(collection(db, "logs"), (snapshot) => {
         wrapper.innerHTML = "";
         
@@ -71,18 +74,14 @@
             return;
         }
 
-        const ipadLogsByYear = {}; // iPadの年度別格納庫
-        const otherLogsList = [];   // その他周辺機材の格納庫
+        const ipadLogsByYear = {};
+        const otherLogsList = [];
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            
-            // 安全ガード：貸出日時がない破損データはスキップ
             if (!data || !data.borrowedAt || typeof data.borrowedAt.seconds !== 'number') return;
 
             if (data.category === "ipads") {
-                // ドキュメントID、または保存されたデータから年度(yearValue)を特定
-                // 「2018-1」のような形式から「2018」を切り出すか、フィールドから参照
                 let yVal = data.yearValue;
                 if (!yVal && data.itemId && data.itemId.includes('-')) {
                     yVal = data.itemId.split('-')[0];
@@ -96,14 +95,11 @@
             }
         });
 
-        // 1. 📱 iPad製品の履歴を「年度ごと」にレンダリング
-        // 年度キーを降順（新しい年度が上）にソートして並び替え
         const sortedYears = Object.keys(ipadLogsByYear).sort((a, b) => b.localeCompare(a));
         
         if (sortedYears.length > 0) {
             sortedYears.forEach(yearTitle => {
                 const yearLogs = ipadLogsByYear[yearTitle];
-                // 各年度の中をさらに貸出日時の最新順（降順）にソート
                 yearLogs.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
 
                 const section = document.createElement('div');
@@ -130,6 +126,14 @@
                 const tbody = document.getElementById(`tbody-log-ipad-${yearTitle}`);
                 yearLogs.forEach(data => {
                     const row = document.createElement('tr');
+                    
+                    // 💡 状態に応じて行全体に背景色クラスを付与
+                    if (data.status === "borrowed") {
+                        row.className = "log-row-rent";    // 未返却：薄い赤
+                    } else {
+                        row.className = "log-row-return";  // 返却済：薄い緑
+                    }
+
                     const rentDateStr = new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP');
                     const returnDateStr = data.returnedAt && data.returnedAt.seconds 
                         ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') 
@@ -154,7 +158,6 @@
             });
         }
 
-        // 2. 📹 その他機材の履歴をレンダリング（下部に独立）
         if (otherLogsList.length > 0) {
             otherLogsList.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
 
@@ -180,6 +183,14 @@
             const tbody = document.getElementById('tbody-log-others');
             otherLogsList.forEach(data => {
                 const row = document.createElement('tr');
+                
+                // 💡 周辺機材側も同様に状態背景色を付与
+                if (data.status === "borrowed") {
+                    row.className = "log-row-rent";
+                } else {
+                    row.className = "log-row-return";
+                }
+
                 const rentDateStr = new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP');
                 const returnDateStr = data.returnedAt && data.returnedAt.seconds 
                     ? new Date(data.returnedAt.seconds * 1000).toLocaleString('ja-JP') 
