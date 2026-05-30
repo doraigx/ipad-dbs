@@ -30,7 +30,8 @@
         .meta-input-group input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #f9f9f9; }
         .meta-input-group input:disabled { background: #eee; color: #666; cursor: not-allowed; border-color: #ddd; }
 
-        .admin-form { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+        /* 💡 編集パネル用の表示・非表示アニメーション兼レイアウト基盤 */
+        .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: none; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
         .form-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
         .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; background: white; height: 36px; box-sizing: border-box; }
@@ -73,19 +74,19 @@
         <a href="./log.html" class="log-nav-btn">貸出・返却履歴ログを確認する</a>
     </div>
 
-    <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
+    <div class="admin-form" id="year-setup-form" style="display: none; background: #fff3e0; border: 1px solid #ffe0b2;">
         <div class="form-group" style="flex: 0.5;">
             <label>新年度の追加(Value)</label>
-            <input type="number" id="new-year-value" placeholder="例: 2018" disabled>
+            <input type="number" id="new-year-value" placeholder="例: 2018">
         </div>
         <div class="form-group">
             <label>新年度の表示名(Label)</label>
-            <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）" disabled>
+            <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）">
         </div>
-        <button class="add-btn" id="add-year-btn" style="background: #ff9800;" disabled>年度枠を追加</button>
+        <button class="add-btn" id="add-year-btn" style="background: #ff9800;">年度枠を追加</button>
     </div>
 
-    <div class="admin-form">
+    <div class="admin-form" id="ipad-add-form" style="display: none;">
         <div class="form-group" style="flex: 0.6;">
             <label for="ins-year">対象年度</label>
             <select id="ins-year"></select>
@@ -125,21 +126,22 @@
     let yearsConfig = [];
     let rawIpads = [];
 
-    // 🔒 編集ロック切り替えシステム
+    // 🔒 編集ロック切り替えシステム（パネル全体の表示・非表示を完全連動）
     document.getElementById('global-lock-toggle').onclick = function() {
         isEditingUnlocked = !isEditingUnlocked;
+        const yearForm = document.getElementById('year-setup-form');
+        const ipadForm = document.getElementById('ipad-add-form');
+
         if (isEditingUnlocked) {
             this.innerText = "🔓 編集ロック解除中（設定変更可）";
             this.className = "btn-ui lock-btn unlocked";
-            document.getElementById('new-year-value').disabled = false;
-            document.getElementById('new-year-label').disabled = false;
-            document.getElementById('add-year-btn').disabled = false;
+            yearForm.style.display = "flex"; // パネルを表示
+            ipadForm.style.display = "flex"; // パネルを表示
         } else {
             this.innerText = "🔒 編集ロック中（数値・年度固定）";
             this.className = "btn-ui lock-btn";
-            document.getElementById('new-year-value').disabled = true;
-            document.getElementById('new-year-label').disabled = true;
-            document.getElementById('add-year-btn').disabled = true;
+            yearForm.style.display = "none"; // パネルを消去
+            ipadForm.style.display = "none"; // パネルを消去
         }
         renderDashboardStructure();
     };
@@ -329,15 +331,40 @@
         try { await updateDoc(doc(db, "ipads", id), { [field]: value }); } catch(e) {}
     };
 
+    // 💡 修正：Firebase内に設定ドキュメントが物理的に存在しない真っ白な初期状態からでも、確実に上書き作成・保存を成功させるロジック
     document.getElementById('add-year-btn').onclick = async function() {
         const v = document.getElementById('new-year-value').value.trim();
         const l = document.getElementById('new-year-label').value.trim();
         if (!v || !l) return alert("年度の数値と表示名の両方を入力してください。");
 
-        const nextYears = [...yearsConfig, { yearValue: Number(v), yearLabel: l, totalPurchased: 0, rentableCount: 0, managerName: "", freshmenCount: 0 }];
-        await setDoc(doc(db, "settings", "years_config"), { years: nextYears });
-        document.getElementById('new-year-value').value = "";
-        document.getElementById('new-year-label').value = "";
+        try {
+            // 一旦現在の最新構成リストを展開して配列化
+            const currentList = Array.isArray(yearsConfig) ? [...yearsConfig] : [];
+            
+            // 重複チェック
+            if (currentList.some(item => item.yearValue === Number(v))) {
+                return alert("【エラー】その年度の数値（Value）はすでに登録されています。");
+            }
+
+            const nextYears = [...currentList, { 
+                yearValue: Number(v), 
+                yearLabel: l, 
+                totalPurchased: 0, 
+                rentableCount: 0, 
+                managerName: "", 
+                freshmenCount: 0 
+            }];
+            
+            // 強制マスタ上書き発行（これで完全に保存されます）
+            await setDoc(doc(db, "settings", "years_config"), { years: nextYears }, { merge: true });
+            
+            document.getElementById('new-year-value').value = "";
+            document.getElementById('new-year-label').value = "";
+            alert("年度の枠組みが正常に追加されました！");
+        } catch (e) {
+            console.error(e);
+            alert("年度の保存処理に失敗しました。");
+        }
     };
 
     window.updateYearMeta = async function(yearValue, field, value) {
@@ -347,16 +374,15 @@
             }
             return y;
         });
-        await setDoc(doc(db, "settings", "years_config"), { years: updated });
+        await setDoc(doc(db, "settings", "years_config"), { years: updated }, { merge: true });
     };
 
     window.removeYearSlot = async function(yearValue) {
         if (!confirm("この年度の枠組み設定を削除しますか？（中のiPadデータは削除されません）")) return;
         const updated = yearsConfig.filter(y => y.yearValue !== yearValue);
-        await setDoc(doc(db, "settings", "years_config"), { years: updated });
+        await setDoc(doc(db, "settings", "years_config"), { years: updated }, { merge: true });
     };
 
-    // 💡 改善：選択した年度内のドキュメントから最大番号を割り出し、完全に自動加算して新規追加するロジック
     document.getElementById('add-ipad-btn').onclick = async function() {
         const yVal = document.getElementById('ins-year').value;
         const model = document.getElementById('ins-model').value.trim();
@@ -365,17 +391,15 @@
         if (!model) return alert("iPadの名前/モデル名は必須です。");
 
         try {
-            // 該当する年度に所属している現在の全iPadデータを抽出
             const ipadsInTargetYear = rawIpads.filter(item => item.yearValue == Number(yVal));
             
             let nextNo = 1;
             if (ipadsInTargetYear.length > 0) {
-                // 現在登録されている通し番号（itemNo）の中から最大値を取得
                 const maxNo = Math.max(...ipadsInTargetYear.map(item => Number(item.itemNo || 0)));
                 nextNo = maxNo + 1;
             }
 
-            const docId = `${yVal}-${nextNo}`; // 💡 「年度-自動連番」の固定ID形式
+            const docId = `${yVal}-${nextNo}`;
 
             await setDoc(doc(db, "ipads", docId), {
                 yearValue: Number(yVal),
