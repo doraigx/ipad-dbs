@@ -51,13 +51,11 @@
     </div>
 </div>
 
-<!-- 使用申請用モーダル（ポップアップ画面） -->
 <div id="borrow-modal" class="modal">
     <div class="modal-content">
         <div class="modal-title" id="modal-item-title">iPad使用申請</div>
         <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
         
-        <!-- 💡 ポップアップ内の最上部へ、ご指示通り「使用者名」を手入力できるフィールドを実装 -->
         <div class="modal-field">
             <label for="borrow-username">使用者氏名</label>
             <input type="text" id="borrow-username" placeholder="例: 山田太郎">
@@ -163,8 +161,9 @@
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">❌ メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
+                            // 💡 修正：残っていた古い記述をクリアし、名前を一切出さず完全に「🔴 使用中」のみの表記に統一
                             mainTile.classList.add("borrowed");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用中 (${item.data.borrowedByName || "登録あり"})</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用中</div>`;
                         } else {
                             mainTile.classList.add("available");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🟢 使用可能</div>`;
