@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>その他機材 貸出管理システム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 20px; font-size: 0.9rem; }
+        .container { width: 100%; max-width: 1100px; margin: 0 auto; }
+        h1 { text-align: center; color: #9c27b0; margin-bottom: 25px; }
+        h2 { font-size: 1.2rem; color: #444; border-left: 4px solid #9c27b0; padding-left: 10px; margin-top: 30px; }
+        
+        .admin-form { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+        .form-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
+        .form-group input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; background: white; height: 36px; box-sizing: border-box; }
+        .add-btn { padding: 0 25px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 36px; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #9c27b0; color: white; }
+        
+        .btn { padding: 5px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: white; }
+        .borrow-btn { background: #4caf50; }
+        .return-btn { background: #ff9800; }
+        .delete-btn { background: #f44336; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📹 その他機材 貸出管理センター</h1>
+
+    <h2>➕ 新しい周辺機材の登録</h2>
+    <div class="admin-form">
+        <div class="form-group">
+            <label>分類名（アルファベット）</label>
+            <input type="text" id="eq-class" placeholder="例: CAMERA, CABLE">
+        </div>
+        <div class="form-group">
+            <label>そのNo</label>
+            <input type="number" id="eq-no" placeholder="例: 1">
+        </div>
+        <div class="form-group">
+            <label>機材・モデル名</label>
+            <input type="text" id="eq-model" placeholder="例: Logicool Webカメラ">
+        </div>
+        <button class="add-btn" id="add-eq-btn">機材を追加登録</button>
+    </div>
+
+    <h2>📋 登録機材一覧 / 貸出操作</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 20%;">分類番号-No</th>
+                <th style="width: 40%;">機材名 / モデル</th>
+                <th style="width: 20%;">現在の利用者</th>
+                <th style="width: 20%;">操作</th>
+            </tr>
+        </thead>
+        <tbody id="eq-table-body"></tbody>
+    </table>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, query, updateDoc, getDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
+        authDomain: "ipad-database-2c20b.firebaseapp.com",
+        projectId: "ipad-database-2c20b",
+        storageBucket: "ipad-database-2c20b.firebasestorage.app",
+        messagingSenderId: "558760087924",
+        appId: "1:558760087924:web:857e8e8096d78671c49c21",
+        measurementId: "G-CEM2VYFRN9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const tbody = document.getElementById('eq-table-body');
+
+    onSnapshot(collection(db, "other_equipments"), (snapshot) => {
+        tbody.innerHTML = "";
+        const list = [];
+        snapshot.forEach(d => list.push({ id: d.id, ...d.data() }));
+        
+        list.sort((a,b) => a.id.localeCompare(b.id));
+
+        list.forEach(item => {
+            const row = document.createElement('tr');
+            const isBorrowed = item.status === "borrowed";
+            
+            let actionHTML = `<button class="btn borrow-btn" onclick="window.borrowEq('${item.id}', '${item.model}')">🟢 借りる</button>`;
+            if (isBorrowed) {
+                actionHTML = `<button class="btn return-btn" onclick="window.returnEq('${item.id}')">🔄 返却</button>`;
+            }
+            actionHTML += ` <button class="btn delete-btn" onclick="window.deleteEq('${item.id}')">削除</button>`;
+
+            row.innerHTML = `
+                <td><strong>${item.id}</strong></td>
+                <td>${item.model}</td>
+                <td><strong>${isBorrowed ? item.borrowedByName : "—"}</strong></td>
+                <td>${actionHTML}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    });
+
+    document.getElementById('add-eq-btn').onclick = async () => {
+        const cls = document.getElementById('eq-class').value.trim().toUpperCase();
+        const no = document.getElementById('eq-no').value.trim();
+        const model = document.getElementById('eq-model').value.trim();
+
+        if (!cls || !no || !model) return alert("すべての項目を入力してください。");
+        const docId = `${cls}-${no}`; // 💡 「分類名-No」の識別IDを生成
+
+        const ref = doc(db, "other_equipments", docId);
+        if ((await getDoc(ref)).exists()) return alert("既に同じ分類番号が存在します。");
+
+        await setDoc(ref, { model: model, status: "available", borrowedByName: "" });
+        document.getElementById('eq-no').value = "";
+        document.getElementById('eq-model').value = "";
+    };
+
+    window.borrowEq = async (id, model) => {
+        const name = prompt("あなたのお名前を入力してください:");
+        if (!name) return;
+        await setDoc(doc(db, "other_equipments", id), { status: "borrowed", borrowedByName: name }, { merge: true });
+        
+        // ログ発行
+        await setDoc(doc(db, "logs", `eq_${id}_${Date.now()}`), {
+            category: "other_equipments", itemId: id, model: model, status: "borrowed", borrowedByName: name, borrowedAt: new Date(), returnedAt: null
+        });
+    };
+
+    window.returnEq = async (id) => {
+        await setDoc(doc(db, "other_equipments", id), { status: "available", borrowedByName: "" }, { merge: true });
+        const q = query(collection(db, "logs"), where("category", "==", "other_equipments"), where("itemId", "==", id), where("status", "==", "borrowed"));
+        const snap = await getDocs(q);
+        snap.forEach(d => updateDoc(doc(db, "logs", d.id), { status: "returned", returnedAt: new Date() }));
+    };
+
+    window.deleteEq = async (id) => {
+        if (confirm("本当に削除しますか？")) await deleteDoc(doc(db, "other_equipments", id));
+    };
+</script>
+</body>
+</html>
