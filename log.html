@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>機材貸出システム - 履歴ログ</title>
+    <title>機材使用システム - 履歴ログ</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
@@ -20,9 +20,8 @@
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { background-color: #0d47a1; color: white; font-weight: bold; font-size: 0.85rem; }
         
-        /* 💡 ログ画面用の背景色スタイル連動 */
-        tr.log-row-rent { background-color: #ffebee; }   /* 未返却（使用中）：薄い赤 */
-        tr.log-row-return { background-color: #e8f5e9; } /* 返却済み：薄い緑 */
+        tr.log-row-rent { background-color: #ffebee; }   
+        tr.log-row-return { background-color: #e8f5e9; } 
         tr:hover { filter: brightness(0.97); }
         
         .badge { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem; color: white; display: inline-block; }
@@ -37,7 +36,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>物品・機材 貸出返却履歴ログ</h1>
+    <h1>物品・機材 使用返却履歴ログ</h1>
     
     <div class="nav-container">
         <a href="./admin.html" class="back-btn">データベース管理画面に戻る</a>
@@ -70,7 +69,7 @@
         wrapper.innerHTML = "";
         
         if (snapshot.empty) {
-            wrapper.innerHTML = `<div class="empty-log-msg">記録されている貸出履歴はありません。</div>`;
+            wrapper.innerHTML = `<div class="empty-log-msg">記録されている使用履歴はありません。</div>`;
             return;
         }
 
@@ -111,10 +110,10 @@
                                 <th style="width: 10%;">管理番号</th>
                                 <th style="width: 20%;">型番 / モデル名</th>
                                 <th style="width: 10%;">状態</th>
-                                <th style="width: 14%;">借用者氏名</th>
+                                <th style="width: 14%;">使用者氏名</th>
                                 <th style="width: 16%;">用途</th>
                                 <th style="width: 10%;">返却予定日</th>
-                                <th style="width: 10%;">貸出日時</th>
+                                <th style="width: 10%;">使用開始日時</th>
                                 <th style="width: 10%;">返却日時</th>
                             </tr>
                         </thead>
@@ -127,11 +126,10 @@
                 yearLogs.forEach(data => {
                     const row = document.createElement('tr');
                     
-                    // 💡 状態に応じて行全体に背景色クラスを付与
                     if (data.status === "borrowed") {
-                        row.className = "log-row-rent";    // 未返却：薄い赤
+                        row.className = "log-row-rent";    
                     } else {
-                        row.className = "log-row-return";  // 返却済：薄い緑
+                        row.className = "log-row-return";  
                     }
 
                     const rentDateStr = new Date(data.borrowedAt.seconds * 1000).toLocaleString('ja-JP');
@@ -170,8 +168,8 @@
                             <th style="width: 15%;">分類番号-No</th>
                             <th style="width: 35%;">周辺機材名 / モデル</th>
                             <th style="width: 12%;">状態</th>
-                            <th style="width: 18%;">借用者氏名</th>
-                            <th style="width: 10%;">貸出日時</th>
+                            <th style="width: 18%;">使用者氏名</th>
+                            <th style="width: 10%;">使用開始日時</th>
                             <th style="width: 10%;">返却日時</th>
                         </tr>
                     </thead>
@@ -184,7 +182,6 @@
             otherLogsList.forEach(data => {
                 const row = document.createElement('tr');
                 
-                // 💡 周辺機材側も同様に状態背景色を付与
                 if (data.status === "borrowed") {
                     row.className = "log-row-rent";
                 } else {
@@ -213,7 +210,7 @@
         }
 
         if (wrapper.innerHTML === "") {
-            wrapper.innerHTML = `<div class="empty-log-msg">有効な貸出履歴データがありません。</div>`;
+            wrapper.innerHTML = `<div class="empty-log-msg">有効な履歴データがありません。</div>`;
         }
     }, (error) => {
         wrapper.innerHTML = `<div class="empty-log-msg" style="color:#f44336;">データのリアルタイム同期に失敗しました。</div>`;
