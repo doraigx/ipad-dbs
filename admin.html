@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad貸出システム - 管理者画面</title>
+    <title>iPad使用管理システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
@@ -43,10 +43,9 @@
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
         th { background-color: #2196f3; color: white; font-weight: bold; font-size: 0.85rem; }
         
-        /* 💡 各行の状態に応じた薄い背景色の完全連動 */
-        tr.row-available { background-color: #e8f5e9; } /* 公開中：薄い緑 */
-        tr.row-borrowed { background-color: #ffebee; }  /* 貸出中：薄い赤 */
-        tr.row-hidden { background-color: #f5f5f5; }    /* 非公開：薄いグレー */
+        tr.row-available { background-color: #e8f5e9; } 
+        tr.row-borrowed { background-color: #ffebee; }  
+        tr.row-hidden { background-color: #f5f5f5; }    
         tr:hover { filter: brightness(0.97); } 
         
         .editable-cell { cursor: pointer; padding: 4px; border-radius: 4px; background: rgba(255,255,255,0.7); border: 1px dashed #bbb; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
@@ -61,27 +60,33 @@
 
         .batch-panel { display: none; background: #fff3e0; border: 2px solid #ff9800; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; }
         .batch-panel-text { font-weight: bold; color: #e65100; font-size: 0.9rem; }
+        .batch-buttons-group { display: flex; gap: 10px; }
         .batch-action-btn { background: #ff9800; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .batch-action-btn:hover { background: #f57c00; }
+        .batch-danger-btn { background: #ff4444; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .batch-danger-btn:hover { background: #cc0000; }
         .row-selector { transform: scale(1.1); cursor: pointer; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>iPad 貸出管理データベース</h1>
+    <h1>iPad 使用管理データベース</h1>
     
     <div class="top-bar">
         <div class="search-container">
             <label for="search-box">🔍 iPad内データ検索：</label>
-            <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、借用者名、用途でリアルタイムに絞り込み...">
+            <input type="text" id="search-box" class="search-input" placeholder="年度、No、名称、シリアル、使用者名、用途でリアルタイムに絞り込み...">
         </div>
         <button id="global-lock-toggle" class="btn-ui lock-btn">ここを押して編集</button>
-        <a href="./log.html" class="log-nav-btn">貸出・返却履歴ログを確認する</a>
+        <a href="./log.html" class="log-nav-btn">使用・返却履歴ログを確認する</a>
     </div>
 
     <div class="batch-panel" id="admin-batch-panel">
-        <div class="batch-panel-text" id="batch-panel-count">選択された貸出中のiPad: 0台</div>
-        <button class="batch-action-btn" id="execute-admin-batch-return">選択したiPadをまとめて一括返却する</button>
+        <div class="batch-panel-text" id="batch-panel-count">選択されたiPad: 0台</div>
+        <div class="batch-buttons-group">
+            <button class="batch-action-btn" id="execute-admin-batch-return">まとめて一括返却する</button>
+            <button class="batch-danger-btn" id="execute-admin-batch-delete">まとめて一括削除する</button>
+        </div>
     </div>
 
     <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
@@ -135,8 +140,8 @@
     let isEditingUnlocked = false; 
     let yearsConfig = [];
     let rawIpads = [];
+    let selectedIpadIds = new Set();
 
-    // 💡 ボタンのテキスト制御を「ここを押して編集」・「編集終了」に完全同期
     document.getElementById('global-lock-toggle').onclick = function() {
         isEditingUnlocked = !isEditingUnlocked;
         const yearForm = document.getElementById('year-setup-form');
@@ -200,7 +205,10 @@
 
             block.innerHTML = `
                 <div class="summary-header">
-                    <div class="summary-title">${y.yearLabel}</div>
+                    <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
+                        <label style="font-size:0.9rem; color:#333; white-space:nowrap;">年度の表示名:</label>
+                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
+                    </div>
                     ${isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
                 </div>
                 <div class="grid-info-inputs">
@@ -209,7 +217,7 @@
                         <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
                     </div>
                     <div class="meta-input-group">
-                        <label>貸し出し可能台数</label>
+                        <label>使用可能台数</label>
                         <input type="number" value="${y.rentableCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'rentableCount', this.value)">
                     </div>
                     <div class="meta-input-group">
@@ -229,10 +237,10 @@
                             <th style="width: 13%;">iPadの名前</th>
                             <th style="width: 12%;">シリアル番号</th>
                             <th style="width: 9%;">現在の状態</th>
-                            <th style="width: 10%;">借用者氏名</th>
+                            <th style="width: 10%;">使用者氏名</th>
                             <th style="width: 11%;">用途</th>
                             <th style="width: 9%;">返却予定日</th>
-                            <th style="width: 7%;">本体貸出</th>
+                            <th style="width: 7%;">本体使用</th>
                             <th style="width: 6%;">ケーブル</th>
                             <th style="width: 6%;">Pencil</th>
                             <th style="width: 6%;">操作</th>
@@ -269,7 +277,6 @@
 
                 const row = document.createElement('tr');
                 
-                // 💡 行全体の背景色クラス割り当て
                 if (status === "borrowed") {
                     row.className = "row-borrowed";
                 } else if (status === "hidden") {
@@ -280,15 +287,16 @@
                 
                 let statusHTML = `<select class="table-select" onchange="window.updateField('${id}', 'status', this.value)">
                     <option value="available" ${status==='available'?'selected':''}>🟢 公開</option>
-                    <option value="borrowed" ${status==='borrowed'?'selected':''}>🔴 貸出中</option>
+                    <option value="borrowed" ${status==='borrowed'?'selected':''}>🔴 使用中</option>
                     <option value="hidden" ${status==='hidden'?'selected':''}>⚫ 非公開</option>
                 </select>`;
 
                 let actionHTML = `<button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>`;
                 
-                let checkboxHTML = `—`;
+                const isChecked = selectedIpadIds.has(id) ? "checked" : "";
+                let checkboxHTML = `<input type="checkbox" class="row-selector" value="${id}" ${isChecked} onchange="window.handleCheckboxClick(this)">`;
+                
                 if (status === "borrowed") {
-                    checkboxHTML = `<input type="checkbox" class="row-selector" value="${id}" onchange="window.onBatchSelectionChange()">`;
                     actionHTML = `
                         <div class="button-container">
                             <button class="action-btn return-btn" onclick="window.forceReturnIpad('${id}')">返却</button>
@@ -321,7 +329,7 @@
                     <td>
                         <select class="table-select" onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
                             <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
-                            <option value="true" ${hasPencilOut?'selected':''}>貸出中</option>
+                            <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
                         </select>
                     </td>
                     <td>${actionHTML}</td>
@@ -329,16 +337,25 @@
                 tbody.appendChild(row);
             });
         });
-        window.onBatchSelectionChange();
+        window.refreshBatchPanelUI();
     }
 
-    window.onBatchSelectionChange = function() {
-        const checkedBoxes = document.querySelectorAll('.row-selector:checked');
+    window.handleCheckboxClick = function(checkbox) {
+        const id = checkbox.value;
+        if (checkbox.checked) {
+            selectedIpadIds.add(id);
+        } else {
+            selectedIpadIds.delete(id);
+        }
+        window.refreshBatchPanelUI();
+    };
+
+    window.refreshBatchPanelUI = function() {
         const batchPanel = document.getElementById('admin-batch-panel');
         const countText = document.getElementById('batch-panel-count');
 
-        if (checkedBoxes.length > 0) {
-            countText.innerText = `選択された貸出中のiPad: ${checkedBoxes.length} 台`;
+        if (selectedIpadIds.size > 0) {
+            countText.innerText = `選択されたiPad: ${selectedIpadIds.size} 台`;
             batchPanel.style.display = "flex";
         } else {
             batchPanel.style.display = "none";
@@ -346,13 +363,11 @@
     };
 
     document.getElementById('execute-admin-batch-return').onclick = async function() {
-        const checkedBoxes = document.querySelectorAll('.row-selector:checked');
-        if (checkedBoxes.length === 0) return;
-        if (!confirm(`選択された ${checkedBoxes.length} 台의 iPadをまとめて強制返却済みに変更しますか？`)) return;
+        if (selectedIpadIds.size === 0) return;
+        if (!confirm(`選択された ${selectedIpadIds.size} 台のiPadをまとめて返却済みに変更しますか？`)) return;
 
         try {
-            for (const box of checkedBoxes) {
-                const id = box.value;
+            for (const id of selectedIpadIds) {
                 const ref = doc(db, "ipads", id);
                 await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
                 
@@ -363,8 +378,26 @@
                 });
             }
             alert("一括返却処理がすべて正常に完了しました！");
+            selectedIpadIds.clear();
+            renderDashboardStructure();
         } catch(e) {
             alert("一括返却処理中にエラーが発生しました。");
+        }
+    };
+
+    document.getElementById('execute-admin-batch-delete').onclick = async function() {
+        if (selectedIpadIds.size === 0) return;
+        if (!confirm(`【最重要警告】選択された ${selectedIpadIds.size} 台のiPadデータをデータベースから完全に「一括削除」しますか？この操作は戻せません。`)) return;
+
+        try {
+            for (const id of selectedIpadIds) {
+                await deleteDoc(doc(db, "ipads", id));
+            }
+            alert("選択されたデータの一括削除が正常に完了しました。");
+            selectedIpadIds.clear();
+            renderDashboardStructure();
+        } catch(e) {
+            alert("一括削除中にエラーが発生しました。");
         }
     };
 
@@ -422,7 +455,8 @@
     window.updateYearMeta = async function(yearValue, field, value) {
         const updated = yearsConfig.map(y => {
             if (y.yearValue === yearValue) {
-                return { ...y, [field]: (field === 'managerName' ? value : Number(value)) };
+                const isStringField = (field === 'managerName' || field === 'yearLabel');
+                return { ...y, [field]: (isStringField ? value.trim() : Number(value)) };
             }
             return y;
         });
@@ -472,11 +506,6 @@
         } catch(e) { 
             alert("登録に失敗しました。"); 
         }
-    };
-
-    window.deleteIpad = async function(id) {
-        if (!confirm(`【警告】${id} のiPadを完全にデータベースから削除しますか？`)) return;
-        await deleteDoc(doc(db, "ipads", id));
     };
 
     window.forceReturnIpad = async function(id) {
