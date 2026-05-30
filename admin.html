@@ -51,7 +51,6 @@
         .editable-cell { padding: 4px; border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
         .unlocked .editable-cell { cursor: pointer; background: rgba(255,255,255,0.8); border: 1px dashed #bbb; }
         
-        /* 💡 備考欄：初期ロック状態では枠線を出さず、メモがない場合は高さ0にして非表示化 */
         .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 0px; }
         .unlocked .notes-cell { cursor: pointer; background: rgba(255,255,255,0.9); border: 1px dashed #aaa; min-height: 20px; }
         .notes-empty { color: #aaa; font-style: italic; }
@@ -64,15 +63,15 @@
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
 
         select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; }
-        select.table-select:disabled { 
-            background: transparent; 
-            border: none; 
-            color: #333; 
-            -webkit-appearance: none; 
-            -moz-appearance: none; 
-            appearance: none; 
-            padding: 0; 
-            cursor: default; 
+        select.table-select:disabled { 
+            background: transparent; 
+            border: none; 
+            color: #333; 
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+            padding: 0; 
+            cursor: default; 
             opacity: 1;
         }
 
@@ -155,18 +154,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    let isEditingUnlocked = false; 
+    // 💡 windowスコープへ露出させ、再描画を跨いでもJavaScriptからロック状態を即座に判定可能にする
+    window.isEditingUnlocked = false; 
     let yearsConfig = [];
     let rawIpads = [];
     let selectedIpadIds = new Set();
 
     document.getElementById('global-lock-toggle').onclick = function() {
-        isEditingUnlocked = !isEditingUnlocked;
+        window.isEditingUnlocked = !window.isEditingUnlocked;
         const yearForm = document.getElementById('year-setup-form');
         const ipadForm = document.getElementById('ipad-add-form');
         const bodyWrapper = document.getElementById('body-wrapper');
 
-        if (isEditingUnlocked) {
+        if (window.isEditingUnlocked) {
             this.innerText = "編集終了";
             this.className = "btn-ui lock-btn unlocked";
             yearForm.style.display = "flex";
@@ -215,14 +215,15 @@
         container.innerHTML = "";
         const filterWord = document.getElementById('search-box').value.trim().toLowerCase();
 
+        // 外側のスコープの値を参照
+        const disabledAttr = window.isEditingUnlocked ? "" : "disabled";
+
         yearsConfig.forEach(y => {
             const yearVal = y.yearValue;
             const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
 
             const block = document.createElement('div');
             block.className = "year-summary-box";
-
-            const disabledAttr = isEditingUnlocked ? "" : "disabled";
 
             block.innerHTML = `
                 <div class="summary-header">
@@ -232,7 +233,7 @@
                             onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
-                    ${isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
+                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
                 </div>
                 <div class="grid-info-inputs">
                     <div class="meta-input-group">
@@ -259,13 +260,13 @@
                             <th style="width: 7%;">年度-No</th>
                             <th style="width: 20%;">iPadの名前 / 備考欄</th>
                             <th style="width: 15%;">シリアル番号</th>
-                            <th style="width: 9%;">現在の状態</th>
+                            <th style="width: 11%;">現在の状態</th>
                             <th style="width: 10%;">使用者氏名</th>
                             <th style="width: 11%;">用途</th>
                             <th style="width: 9%;">返却予定日</th>
-                            <th style="width: 5%;">本体</th>
-                            <th style="width: 5%;">ケブ</th>
-                            <th style="width: 5%;">ペン</th>
+                            <th style="width: 6%;">本体</th>
+                            <th style="width: 6%;">ケブ</th>
+                            <th style="width: 6%;">ペン</th>
                             <th style="width: 10%;">操作</th>
                         </tr>
                     </thead>
@@ -335,42 +336,43 @@
                     `;
                 }
 
-                // 💡 修正：ロック中は文字が空なら要素を完全空にし、編集時のみガイド文字（notes-empty）をレンダリングする制御
+                // 💡 ロック中は空文字列なら完全非表示、編集解除モード時のみ薄いガイドを出現させる
                 let notesHTML = "";
                 if (notes) {
                     notesHTML = notes;
-                } else if (isEditingUnlocked) {
+                } else if (window.isEditingUnlocked) {
                     notesHTML = `<span class="notes-empty">クリックして備考を入力...</span>`;
                 }
 
+                // 💡 修正：略さず正式表記（可能/不可、有/無、使用中/なし）に変更
                 row.innerHTML = `
                     <td style="text-align:center;">${checkboxHTML}</td>
                     <td><strong>${id}</strong></td>
                     <td>
-                        <div class="editable-cell" doc-id="${id}" field-name="model" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${model}</div>
-                        <div class="notes-cell" doc-id="${id}" field-name="notes" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${notesHTML}</div>
+                        <div class="editable-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div>
+                        <div class="notes-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'notes', this)}">${notesHTML}</div>
                     </td>
-                    <td><div class="editable-cell" doc-id="${id}" field-name="serialNo" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${serial}</div></td>
+                    <td><div class="editable-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'serialNo', this)}">${serial}</div></td>
                     <td>${statusHTML}</td>
                     <td><strong>${borrowedByName}</strong></td>
                     <td>${purpose}</td>
                     <td>${returnPlan}</td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'isAvailable', this.value === 'true')">
-                            <option value="true" ${isAvailable?'selected':''}>可</option>
+                            <option value="true" ${isAvailable?'selected':''}>可能</option>
                             <option value="false" ${!isAvailable?'selected':''}>不可</option>
                         </select>
                     </td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
-                            <option value="true" ${hasCable?'selected':''}>付</option>
+                            <option value="true" ${hasCable?'selected':''}>有</option>
                             <option value="false" ${!hasCable?'selected':''}>無</option>
                         </select>
                     </td>
                     <td>
                         <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
-                            <option value="false" ${!hasPencilOut?'selected':''}>無</option>
-                            <option value="true" ${hasPencilOut?'selected':''}>使</option>
+                            <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
+                            <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
                         </select>
                     </td>
                     <td>${actionHTML}</td>
@@ -450,11 +452,8 @@
         } catch(e) { alert("一括削除中にエラーが発生しました。"); }
     };
 
-    // 💡 修正：インライン編集をより頑丈にするため、要素の属性（HTML5データ属性）から直接IDとフィールドを割り出し、確実に入力ボックスを起動させるロジックに改良
-    window.startEditCell = function(element) {
-        const id = element.getAttribute('doc-id');
-        const field = element.getAttribute('field-name');
-        
+    // 💡 修正：HTMLの呼び出し指定（id, field, this）に完全に適合させ、ダブルクリックでバグを起こさず確実に入力ボックスを展開させる仕組みに全面修正
+    window.startEditCell = function(id, field, element) {
         const isPlaceholder = element.querySelector('.notes-empty') !== null;
         const currentText = isPlaceholder ? "" : (element.innerText === "—" ? "" : element.innerText);
         
