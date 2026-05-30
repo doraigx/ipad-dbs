@@ -51,9 +51,9 @@
         .editable-cell { padding: 4px; border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
         .unlocked .editable-cell { cursor: pointer; background: rgba(255,255,255,0.8); border: 1px dashed #bbb; }
         
-        /* 💡 備考欄専用のスタイル（文字サイズを少し小さくし、プレーンな表示から編集モード時に枠線を出す） */
-        .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 20px; }
-        .unlocked .notes-cell { cursor: pointer; background: rgba(255,255,255,0.9); border: 1px dashed #aaa; }
+        /* 💡 備考欄：初期ロック状態では枠線を出さず、メモがない場合は高さ0にして非表示化 */
+        .notes-cell { font-size: 0.76rem; color: #666; font-weight: normal; margin-top: 4px; padding: 3px 6px; border-radius: 4px; display: block; width: 100%; box-sizing: border-box; min-height: 0px; }
+        .unlocked .notes-cell { cursor: pointer; background: rgba(255,255,255,0.9); border: 1px dashed #aaa; min-height: 20px; }
         .notes-empty { color: #aaa; font-style: italic; }
 
         .cell-edit-input { padding: 2px 4px; font-size: 0.8rem; border: 1px solid #2196f3; border-radius: 4px; width: 100%; box-sizing: border-box; background: white; }
@@ -288,7 +288,7 @@
                 const isAvailable = item.isAvailable !== false; 
                 const hasCable = item.hasCableIncluded !== false;
                 const hasPencilOut = item.hasPencilOut === true;
-                const notes = item.notes || ""; // 💡 データベースから備考欄のテキストを取得
+                const notes = item.notes || ""; 
 
                 if (filterWord) {
                     const matchId = id.toLowerCase().includes(filterWord);
@@ -335,19 +335,22 @@
                     `;
                 }
 
-                // 💡 備考が空のときのプレースホルダー表示制御
-                const notesHTML = notes 
-                    ? notes 
-                    : `<span class="notes-empty">クリックして備考を入力...</span>`;
+                // 💡 修正：ロック中は文字が空なら要素を完全空にし、編集時のみガイド文字（notes-empty）をレンダリングする制御
+                let notesHTML = "";
+                if (notes) {
+                    notesHTML = notes;
+                } else if (isEditingUnlocked) {
+                    notesHTML = `<span class="notes-empty">クリックして備考を入力...</span>`;
+                }
 
                 row.innerHTML = `
                     <td style="text-align:center;">${checkboxHTML}</td>
                     <td><strong>${id}</strong></td>
                     <td>
-                        <div class="editable-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div>
-                        <div class="notes-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'notes', this)}">${notesHTML}</div>
+                        <div class="editable-cell" doc-id="${id}" field-name="model" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${model}</div>
+                        <div class="notes-cell" doc-id="${id}" field-name="notes" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${notesHTML}</div>
                     </td>
-                    <td><div class="editable-cell" ondblclick="if(isEditingUnlocked){window.startEditCell('${id}', 'serialNo', this)}">${serial}</div></td>
+                    <td><div class="editable-cell" doc-id="${id}" field-name="serialNo" ondblclick="if(isEditingUnlocked){window.startEditCell(this)}">${serial}</div></td>
                     <td>${statusHTML}</td>
                     <td><strong>${borrowedByName}</strong></td>
                     <td>${purpose}</td>
@@ -447,20 +450,28 @@
         } catch(e) { alert("一括削除中にエラーが発生しました。"); }
     };
 
-    window.startEditCell = function(id, field, element) {
-        // プレースホルダー文字が入っている場合は初期値を空にする
+    // 💡 修正：インライン編集をより頑丈にするため、要素の属性（HTML5データ属性）から直接IDとフィールドを割り出し、確実に入力ボックスを起動させるロジックに改良
+    window.startEditCell = function(element) {
+        const id = element.getAttribute('doc-id');
+        const field = element.getAttribute('field-name');
+        
         const isPlaceholder = element.querySelector('.notes-empty') !== null;
         const currentText = isPlaceholder ? "" : (element.innerText === "—" ? "" : element.innerText);
         
         const input = document.createElement('input');
         input.className = 'cell-edit-input';
         input.value = currentText;
+        
         element.parentNode.replaceChild(input, element);
         input.focus();
 
         async function save() {
             const val = input.value.trim();
-            try { await updateDoc(doc(db, "ipads", id), { [field]: val }); } catch(e) { renderDashboardStructure(); }
+            try { 
+                await updateDoc(doc(db, "ipads", id), { [field]: val }); 
+            } catch(e) { 
+                renderDashboardStructure(); 
+            }
         }
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
         input.addEventListener('blur', save);
@@ -543,7 +554,7 @@
                 isAvailable: true,
                 hasCableIncluded: true,
                 hasPencilOut: false,
-                notes: "" // 新規登録時に備考欄を空文字で初期化
+                notes: "" 
             });
             
             document.getElementById('ins-model').value = "";
