@@ -14,7 +14,6 @@
         h3 { font-size: 1rem; color: #aaa; margin-top: 15px; margin-bottom: 5px; padding-left: 5px; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
         
-        .input-group { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; }
         input, select, textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; margin-top: 5px; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
         
@@ -36,9 +35,8 @@
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
-        /* グリッドレイアウト */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
-        .ipad-tile { height: 135px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; position: relative; }
+        .ipad-tile { height: 135px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
         
         .available { background: #4caf50; color: white; } 
@@ -46,32 +44,9 @@
         .my-borrowed { background: #ff9800; color: white; } 
         
         .tile-info { font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; }
-        
-        .tile-model { 
-            font-size: 0.65rem; 
-            opacity: 0.9; 
-            font-weight: normal; 
-            width: 100%;
-            word-break: break-all; 
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2; 
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-            max-height: 2.4em;
-            margin: auto 0; 
-        }
-        
+        .tile-model { font-size: 0.65rem; opacity: 0.9; font-weight: normal; width: 100%; word-break: break-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; max-height: 2.4em; margin: auto 0; }
         .empty-message { grid-column: 1 / -1; background: #1e1e1e; color: #666; text-align: center; padding: 20px; border-radius: 8px; font-size: 0.9rem; border: 1px dashed #333; }
 
-        /* 複数選択返却用のスタイル */
-        .select-box { position: absolute; top: 8px; left: 8px; transform: scale(1.2); z-index: 10; cursor: pointer; }
-        .batch-return-container { margin-top: 15px; text-align: right; }
-        .batch-btn { background: #ff9800; color: white; font-size: 0.9rem; padding: 10px 20px; }
-        .batch-btn:hover { background: #e68a00; }
-
-        /* 貸出申請ポップアップフォーム */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 450px; width: 90%; color: #fff; }
         .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
@@ -90,9 +65,6 @@
     </div>
 
     <h2>借りているiPad</h2>
-    <div class="batch-return-container">
-        <button id="execute-batch-return" class="batch-btn">選択したiPadを一括返却する</button>
-    </div>
     <div class="grid" id="my-ipad-grid"></div>
 
     <h2>貸出・返却</h2>
@@ -102,22 +74,18 @@
 <div id="borrow-modal" class="modal">
     <div class="modal-content">
         <div class="modal-title" id="modal-item-title">iPad貸出申請</div>
-        
         <div class="modal-field">
             <label for="borrow-purpose">用途欄</label>
             <input type="text" id="borrow-purpose" placeholder="例: 授業利用、研究開発など">
         </div>
-        
         <div class="modal-field">
             <label for="borrow-return-plan">返却予定日</label>
             <input type="date" id="borrow-return-plan">
         </div>
-        
         <div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
             <input type="checkbox" id="borrow-pencil" style="width: auto; margin-top: 0; transform: scale(1.3);">
             <label for="borrow-pencil" style="cursor: pointer;">Pencilを一緒に借りる</label>
         </div>
-        
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
             <button id="modal-submit-btn">貸出を確定する</button>
@@ -156,7 +124,6 @@
         } else {
             onSnapshot(doc(db, "users", user.uid), (docSnap) => {
                 myCustomName = user.displayName;
-
                 if (docSnap.exists()) {
                     myCustomName = docSnap.data().customName || user.displayName;
                 }
@@ -189,10 +156,7 @@
 
                 document.getElementById('update-name-btn')?.addEventListener('click', updateCustomName);
                 document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-                
-                if (myCustomName) {
-                    initIpadGrids();
-                }
+                if (myCustomName) initIpadGrids();
             });
         }
     });
@@ -262,7 +226,6 @@
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const docId = docSnap.id;
-                    
                     if (data.status === "hidden") return;
 
                     const yVal = data.yearValue;
@@ -272,11 +235,11 @@
                         const myTile = document.createElement('div');
                         myTile.className = "ipad-tile my-borrowed";
                         myTile.innerHTML = `
-                            <input type="checkbox" class="select-box" value="${docId}">
                             <div>No.${data.itemNo || docId}</div>
                             <div class="tile-model">${data.model || "未設定"}</div>
-                            <div class="tile-info">🔄 返却（選択可）</div>
+                            <div class="tile-info">🔄 タップして返却</div>
                         `;
+                        myTile.onclick = () => handleSingleReturn(docId);
                         myGrid.appendChild(myTile);
                     }
 
@@ -384,10 +347,7 @@
 
             document.getElementById('borrow-modal').style.display = "none";
             alert("貸出処理が完了しました！");
-        } catch (e) { 
-            console.error(e);
-            alert("貸出に失敗しました。"); 
-        }
+        } catch (e) { alert("貸出に失敗しました。"); }
     };
 
     async function handleSingleReturn(docId) {
@@ -412,34 +372,6 @@
             }
         } catch (e) { alert("返却に失敗しました。"); }
     }
-
-    document.getElementById('execute-batch-return').onclick = async () => {
-        const checkedBoxes = document.querySelectorAll('#my-ipad-grid .select-box:checked');
-        if (checkedBoxes.length === 0) return alert("返却したいiPadにチェックを入れてください。");
-        if (!confirm(`選択された ${checkedBoxes.length} 台のiPadを一括返却しますか？`)) return;
-
-        try {
-            for (const box of checkedBoxes) {
-                const docId = box.value;
-                const docRef = doc(db, "ipads", docId);
-                
-                await updateDoc(docRef, { 
-                    status: "available", 
-                    borrowedByName: "",
-                    purpose: "",
-                    returnPlanDate: "",
-                    hasPencilOut: false
-                });
-
-                const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", docId), where("status", "==", "borrowed"));
-                const logSnap = await getDocs(logQuery);
-                logSnap.forEach((logDoc) => {
-                    updateDoc(doc(db, "logs", logDoc.id), { status: "returned", returnedAt: new Date() });
-                });
-            }
-            alert("一括返却が完了しました。");
-        } catch (e) { alert("一括返却中にエラーが発生しました。"); }
-    };
 </script>
 </body>
 </html>
