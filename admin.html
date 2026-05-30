@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad使用管理システム - 管理者画面</title>
+    <title>iPad 使用管理システム - 管理者画面</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans JP', sans-serif; background: #f4f7f9; color: #333; margin: 0; padding: 15px 15px; box-sizing: border-box; font-size: 0.9rem; }
@@ -203,11 +203,14 @@
 
             const disabledAttr = isEditingUnlocked ? "" : "disabled";
 
+            // 💡 リアルタイム描画のバグを回避するため、onchangeではなく、フォーカスアウト（onblur）およびEnterキーで確定保存する安定ロジックへ完全移行
             block.innerHTML = `
                 <div class="summary-header">
                     <div class="meta-input-group" style="flex:1; max-width:400px; flex-direction:row; align-items:center; gap:10px;">
                         <label style="font-size:0.9rem; color:#333; white-space:nowrap;">年度の表示名:</label>
-                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
+                        <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; background:#fff;" value="${y.yearLabel}" ${disabledAttr} 
+                            onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
+                            onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
                     ${isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
                 </div>
@@ -380,25 +383,19 @@
             alert("一括返却処理がすべて正常に完了しました！");
             selectedIpadIds.clear();
             renderDashboardStructure();
-        } catch(e) {
-            alert("一括返却処理中にエラーが発生しました。");
-        }
+        } catch(e) { alert("一括返却処理中にエラーが発生しました。"); }
     };
 
     document.getElementById('execute-admin-batch-delete').onclick = async function() {
         if (selectedIpadIds.size === 0) return;
-        if (!confirm(`【最重要警告】選択された ${selectedIpadIds.size} 台のiPadデータをデータベースから完全に「一括削除」しますか？この操作は戻せません。`)) return;
+        if (!confirm(`選択された ${selectedIpadIds.size} 台のiPadデータをデータベースから完全に「一括削除」しますか？`)) return;
 
         try {
-            for (const id of selectedIpadIds) {
-                await deleteDoc(doc(db, "ipads", id));
-            }
+            for (const id of selectedIpadIds) { await deleteDoc(doc(db, "ipads", id)); }
             alert("選択されたデータの一括削除が正常に完了しました。");
             selectedIpadIds.clear();
             renderDashboardStructure();
-        } catch(e) {
-            alert("一括削除中にエラーが発生しました。");
-        }
+        } catch(e) { alert("一括削除中にエラーが発生しました。"); }
     };
 
     window.startEditCell = function(id, field, element) {
@@ -411,9 +408,7 @@
 
         async function save() {
             const val = input.value.trim();
-            try {
-                await updateDoc(doc(db, "ipads", id), { [field]: val });
-            } catch(e) { renderDashboardStructure(); }
+            try { await updateDoc(doc(db, "ipads", id), { [field]: val }); } catch(e) { renderDashboardStructure(); }
         }
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
         input.addEventListener('blur', save);
@@ -447,9 +442,7 @@
             document.getElementById('new-year-value').value = "";
             document.getElementById('new-year-label').value = "";
             alert("年度の枠組みが正常に追加されました！");
-        } catch (e) {
-            alert("年度の保存処理に失敗しました。");
-        }
+        } catch (e) { alert("年度の保存処理に失敗しました。"); }
     };
 
     window.updateYearMeta = async function(yearValue, field, value) {
@@ -503,9 +496,7 @@
             document.getElementById('ins-model').value = "";
             document.getElementById('ins-serial').value = "";
             alert(`正常に追加されました！ (ID: No.${docId})`);
-        } catch(e) { 
-            alert("登録に失敗しました。"); 
-        }
+        } catch(e) { alert("登録に失敗しました。"); }
     };
 
     window.forceReturnIpad = async function(id) {
