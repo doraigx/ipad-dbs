@@ -290,7 +290,7 @@
                                 mainTile.onclick = () => handleSingleReturn(item.id);
                             } else {
                                 mainTile.classList.add("borrowed");
-                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用不可</div>`;
+                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 貸出不可</div>`;
                             }
                         } else {
                             mainTile.classList.add("available");
