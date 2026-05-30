@@ -8,11 +8,14 @@
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 630px; margin: 0 auto; }
+        
+        /* 💡 修正：パソコンから見る時に画面いっぱいに広がるよう、全体のmax-width制限を解除（または極大化） */
+        .container { max-width: 100%; margin: 0 auto; padding: 0 10px; }
+        
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
         h2 { font-size: 1.3rem; margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid #2196f3; }
         h3 { font-size: 1rem; color: #aaa; margin-top: 15px; margin-bottom: 5px; padding-left: 5px; }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 20px; max-width: 630px; margin-left: auto; margin-right: auto; }
         
         input, select, textarea { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; margin-top: 5px; }
         button { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #2196f3; color: white; }
@@ -24,7 +27,7 @@
         .profile-section { display: flex; flex-direction: column; gap: 4px; }
         .info-row { font-size: 0.9rem; margin: 4px 0; color: #ccc; }
 
-        .accordion-item { border: 1px solid #333; border-radius: 6px; margin-top: 15px; overflow: hidden; }
+        .accordion-item { border: 1px solid #444; border-radius: 6px; margin-top: 15px; overflow: hidden; }
         .accordion-trigger { background: #252525; padding: 12px 15px; font-size: 0.85rem; color: #aaa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; user-select: none; transition: background 0.2s; }
         .accordion-trigger:hover { background: #2d2d2d; color: #fff; }
         .accordion-trigger::after { content: '▼'; font-size: 0.7rem; transition: transform 0.2s; }
@@ -35,7 +38,9 @@
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 15px; }
+        /* 💡 修正：4個で制限せず、パソコンの大画面なら横幅いっぱいまで「自動で何個でも」回り込んで並びきるフレックス＆グリッド設計 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; width: 100%; }
+        
         .ipad-tile { height: 135px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
         .ipad-tile:hover { transform: translateY(-3px); }
         
@@ -45,8 +50,6 @@
         
         .tile-info { font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; width: 100%; box-sizing: border-box; }
         .tile-model { font-size: 0.65rem; opacity: 0.9; font-weight: normal; width: 100%; word-break: break-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; max-height: 2.4em; margin: auto 0; }
-        
-        /* 💡 タイル内用：目立たない通常の文字色で配置するアクセサリ表記スタイル */
         .tile-sub-info { font-size: 0.62rem; font-weight: normal; opacity: 0.8; margin-top: 2px; color: var(--text); }
         
         .empty-message { grid-column: 1 / -1; background: #1e1e1e; color: #666; text-align: center; padding: 20px; border-radius: 8px; font-size: 0.9rem; border: 1px dashed #333; }
@@ -54,8 +57,6 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 450px; width: 90%; color: #fff; }
         .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
-        
-        /* 💡 モーダル画面用：本体名の下に置く目立たないアクセサリ表記スタイル */
         .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 15px; font-weight: normal; padding-left: 2px; }
         
         .modal-field { margin-bottom: 12px; }
@@ -151,7 +152,7 @@
                                         <button id="update-name-btn" class="block-btn">名前の変更を保存する</button>
                                     </div>
                                     <div>
-                                        <div class="sub-section-title">⚙️ 管理者問い合わせ用ID</div>
+                                        <div class="sub-section-title">⚙️ ユーザー固有識別ID (UID)</div>
                                         <div class="uid-text">${user.uid}</div>
                                     </div>
                                     <div>
@@ -245,7 +246,6 @@
                         const myTile = document.createElement('div');
                         myTile.className = "ipad-tile my-borrowed";
                         
-                        // ケーブルなし判定の表記を配置
                         const cableNoticeHTML = data.hasCableIncluded === false ? `<div class="tile-sub-info">ケーブルなし</div>` : "";
                         
                         myTile.innerHTML = `
@@ -278,7 +278,6 @@
                         mainTile.className = "ipad-tile";
                         const itemNum = item.data.itemNo || item.id;
                         
-                        // 💡 登録データに基づいて、本体名の下に目立たない通常の文字色で「ケーブルなし」を出力
                         const cableNoticeHTML = item.data.hasCableIncluded === false ? `<div class="tile-sub-info">ケーブルなし</div>` : "";
 
                         if (item.data.isAvailable === false) {
@@ -309,12 +308,10 @@
         });
     }
 
-    // 💡 修正：モーダルオープン時に、該当iPadのケーブルの有無を引数から受け取って反映
     function openBorrowModal(docId, itemNo, modelName, hasCable) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
         
-        // 💡 申請画面（日付を決めるモーダル）の本体名の下へ、目立たない文字で出力
         const subInfoContainer = document.getElementById('modal-item-sub-info');
         if (!hasCable) {
             subInfoContainer.innerText = "型番: " + modelName + "（ケーブルなし）";
@@ -347,7 +344,6 @@
             
             const currentModel = snap.exists() ? snap.data().model : "iPad";
             const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
-            // 当時のケーブルの初期状態マスタ設定を正確にロード
             const currentCableStatus = snap.exists() ? (snap.data().hasCableIncluded !== false) : true;
 
             await updateDoc(ipadDocRef, {
@@ -372,7 +368,7 @@
                 returnedAt: null,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: currentCableStatus, // 💡 当時の状態を履歴に正確に永続保存
+                hasCableIncluded: currentCableStatus, 
                 hasPencilOut: includePencil
             });
 
