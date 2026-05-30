@@ -282,19 +282,19 @@
 
                         if (item.data.isAvailable === false) {
                             mainTile.classList.add("borrowed");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">❌ メンテナンス中</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
                             if (item.data.borrowedByName === myCustomName) {
                                 mainTile.classList.add("my-borrowed");
-                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔄 あなたが使用中</div>`;
+                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">あなたが使用中</div>`;
                                 mainTile.onclick = () => handleSingleReturn(item.id);
                             } else {
                                 mainTile.classList.add("borrowed");
-                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 貸出不可</div>`;
+                                mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">貸出不可</div>`;
                             }
                         } else {
                             mainTile.classList.add("available");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🟢 使用可能</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">使用可能</div>`;
                             mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false);
                         }
                         gridElement.appendChild(mainTile);
