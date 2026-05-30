@@ -22,26 +22,29 @@
 
         .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         
-        /* 💡 修正：ヘッダーバーを横一列にゆったり並べ、情報が詰まって見えないように調整 */
-        .summary-header { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px 15px; cursor: pointer; user-select: none; transition: background 0.2s; gap: 20px; }
+        /* 💡 修正：ヘッダーを崩さないよう、アコーディオン全体を均等なグリッドテーブル状に配置 */
+        .summary-header { display: grid; grid-template-columns: 280px 1fr auto; align-items: center; background: #fafafa; padding: 10px 15px; cursor: pointer; user-select: none; transition: background 0.2s; gap: 10px; }
         .summary-header:hover { background: #f1f5f9; }
         
-        .header-title-wrapper { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-        .accordion-arrow { font-size: 0.75rem; color: #666; transition: transform 0.2s ease; }
+        .header-title-wrapper { display: flex; align-items: center; gap: 10px; width: 100%; overflow: hidden; }
+        .accordion-arrow { font-size: 0.75rem; color: #666; transition: transform 0.2s ease; flex-shrink: 0; }
         .year-summary-box.open .accordion-arrow { transform: rotate(180deg); }
 
         .accordion-content { max-height: 0px; overflow: hidden; transition: max-height 0.25s ease-out; background: #fff; }
         .year-summary-box.open .accordion-content { max-height: 2000px; transition: max-height 0.4s ease-in; }
         .accordion-inner-padding { padding: 0 15px 15px 15px; }
 
-        /* 💡 修正：ヘッダー内部に美しく一列で収めるためのフレックスレイアウト */
-        .grid-info-inputs { display: flex; items-align: center; gap: 25px; flex: 1; justify-content: flex-start; margin-left: 20px; }
-        .meta-input-group { display: flex; flex-direction: row; gap: 6px; align-items: center; }
+        /* 💡 修正：メタ情報エリアを4列の均等グリッド構造に改造し、文字幅のラインを完全に統一 */
+        .grid-info-inputs { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 15px; width: 100%; }
+        .meta-input-group { display: flex; flex-direction: row; gap: 6px; align-items: center; width: 100%; overflow: hidden; }
         .meta-input-group label { font-size: 0.8rem; font-weight: bold; color: #555; white-space: nowrap; }
         
-        .meta-input-group input { padding: 4px 8px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; max-width: 90px; text-align: center; }
-        /* 名前入力欄だけ少し横幅を広げる */
-        .meta-input-group input[type="text"] { max-width: 140px; text-align: left; }
+        /* 💡 修正：カッコが絶対に見切れないように、インプットの横幅幅を100%均等追従型に最適化 */
+        .meta-input-group input { padding: 4px 8px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; width: 100%; max-width: 80px; text-align: center; }
+        .meta-input-group input[type="text"] { max-width: 130px; text-align: left; }
+        
+        /* 💡 修正：西暦・和暦の表示インプットの幅を強固に固定し、見切れを永久追放 */
+        input.year-label-input { font-weight: bold; font-size: 1rem; padding: 4px 8px; width: 240px; text-align: left; border: none; background: transparent; }
 
         .meta-input-group input:disabled {
             background: transparent !important;
@@ -54,6 +57,12 @@
             text-align: left;
         }
         .unlocked .meta-input-group input {
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* 編集時は追加枠用の点線デザインを適用 */
+        .unlocked input.year-label-input {
             background: #f9f9f9;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -130,7 +139,6 @@
         <a href="./log.html" class="log-nav-btn">使用・返却履歴ログを確認する</a>
     </div>
 
-    <!-- まとめて返却・削除ができる一括操作パネル -->
     <div class="batch-panel" id="admin-batch-panel">
         <div class="batch-panel-text" id="batch-panel-count">選択されたiPad: 0台</div>
         <div class="batch-buttons-group">
@@ -139,7 +147,6 @@
         </div>
     </div>
 
-    <!-- 年度管理設定フォーム -->
     <div class="admin-form" id="year-setup-form" style="background: #fff3e0; border: 1px solid #ffe0b2;">
         <div class="form-group" style="flex: 0.5;">
             <label>西暦ID</label>
@@ -149,10 +156,10 @@
             <label>表示名</label>
             <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）">
         </div>
+        <div class="form-group" style="display:none; flex:0;"></div>
         <button class="add-btn" id="add-year-btn" style="background: #ff9800;">年度枠を追加</button>
     </div>
 
-    <!-- 物品追加フォーム -->
     <div class="admin-form" id="ipad-add-form">
         <div class="form-group" style="flex: 0.6;">
             <label for="ins-year">対象年度</label>
@@ -263,19 +270,17 @@
             block.className = `year-summary-box ${isOpenClass}`;
             block.id = `box-year-${yearVal}`;
 
-            // 💡 改善：各項目のインプット要素群（grid-info-inputs）を丸ごとアコーディオン開閉前の「summary-header」の内部へお引越し
             block.innerHTML = `
                 <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
                     <div class="header-title-wrapper">
                         <span class="accordion-arrow">▼</span>
-                        <div class="meta-input-group" style="max-width:260px;" onclick="event.stopPropagation();">
-                            <input type="text" style="font-weight:bold; font-size:1rem; padding:4px 8px; width:220px;" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
+                        <div class="meta-input-group" onclick="event.stopPropagation();">
+                            <input type="text" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
                                 onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
                                 onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                         </div>
                     </div>
                     
-                    <!-- 💡 開く前にも常時見えている横一列のメタ情報ステータスバー -->
                     <div class="grid-info-inputs" onclick="event.stopPropagation();">
                         <div class="meta-input-group">
                             <label>購入台数:</label>
@@ -295,7 +300,7 @@
                         </div>
                     </div>
                     
-                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">この年度枠を削除</button>` : ""}
+                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">削除</button>` : "<div style='width:38px;'></div>"}
                 </div>
                 
                 <div class="accordion-content">
