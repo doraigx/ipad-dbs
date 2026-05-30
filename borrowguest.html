@@ -51,11 +51,13 @@
     </div>
 </div>
 
+<!-- 使用申請用モーダル（ポップアップ画面） -->
 <div id="borrow-modal" class="modal">
     <div class="modal-content">
         <div class="modal-title" id="modal-item-title">iPad使用申請</div>
         <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
         
+        <!-- 💡 ポップアップ内の最上部へ、ご指示通り「使用者名」を手入力できるフィールドを実装 -->
         <div class="modal-field">
             <label for="borrow-username">使用者氏名</label>
             <input type="text" id="borrow-username" placeholder="例: 山田太郎">
@@ -98,7 +100,6 @@
 
     let currentTargetDocId = ""; 
 
-    // アカウントなしで即時データグリッドの初期化処理を起動
     initGuestIpadGrids();
 
     function initGuestIpadGrids() {
@@ -132,7 +133,7 @@
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const docId = docSnap.id;
-                    if (data.status === "hidden") return; // 非公開データは除外
+                    if (data.status === "hidden") return; 
 
                     const yVal = data.yearValue;
                     if (!itemsByYear[yVal]) itemsByYear[yVal] = [];
@@ -162,7 +163,6 @@
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">❌ メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
-                            // ゲストページでは誰が借りているかに関わらず一律「使用不可」として赤タイル化
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">🔴 使用中 (${item.data.borrowedByName || "登録あり"})</div>`;
                         } else {
@@ -218,7 +218,6 @@
             const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
             const currentCableStatus = snap.exists() ? (snap.data().hasCableIncluded !== false) : true;
 
-            // データベースの該当端末をロック
             await updateDoc(ipadDocRef, {
                 status: "borrowed",
                 borrowedByName: inputName,
@@ -228,7 +227,6 @@
                 hasPencilOut: includePencil
             });
 
-            // 履歴ログ用コレクションへ自動永続保存（log.html、admin.htmlと同期）
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
             await setDoc(doc(db, "logs", logId), {
                 category: "ipads",
