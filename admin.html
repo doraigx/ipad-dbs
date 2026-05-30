@@ -22,11 +22,11 @@
 
         .year-summary-box { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         
-        /* 💡 修正：ヘッダーを崩さないよう、アコーディオン全体を均等なグリッドテーブル状に配置 */
-        .summary-header { display: grid; grid-template-columns: 280px 1fr auto; align-items: center; background: #fafafa; padding: 10px 15px; cursor: pointer; user-select: none; transition: background 0.2s; gap: 10px; }
+        /* 💡 修正：1列目の表示名エリアを固定値から max-content (文字に合わせる) へ変更し、カッコの見切れを永久追放 */
+        .summary-header { display: grid; grid-template-columns: max-content 1fr auto; align-items: center; background: #fafafa; padding: 10px 15px; cursor: pointer; user-select: none; transition: background 0.2s; gap: 20px; }
         .summary-header:hover { background: #f1f5f9; }
         
-        .header-title-wrapper { display: flex; align-items: center; gap: 10px; width: 100%; overflow: hidden; }
+        .header-title-wrapper { display: flex; align-items: center; gap: 10px; overflow: hidden; }
         .accordion-arrow { font-size: 0.75rem; color: #666; transition: transform 0.2s ease; flex-shrink: 0; }
         .year-summary-box.open .accordion-arrow { transform: rotate(180deg); }
 
@@ -34,17 +34,15 @@
         .year-summary-box.open .accordion-content { max-height: 2000px; transition: max-height 0.4s ease-in; }
         .accordion-inner-padding { padding: 0 15px 15px 15px; }
 
-        /* 💡 修正：メタ情報エリアを4列の均等グリッド構造に改造し、文字幅のラインを完全に統一 */
         .grid-info-inputs { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 15px; width: 100%; }
         .meta-input-group { display: flex; flex-direction: row; gap: 6px; align-items: center; width: 100%; overflow: hidden; }
         .meta-input-group label { font-size: 0.8rem; font-weight: bold; color: #555; white-space: nowrap; }
         
-        /* 💡 修正：カッコが絶対に見切れないように、インプットの横幅幅を100%均等追従型に最適化 */
         .meta-input-group input { padding: 4px 8px; font-size: 0.85rem; color: #333; box-sizing: border-box; font-family: inherit; width: 100%; max-width: 80px; text-align: center; }
         .meta-input-group input[type="text"] { max-width: 130px; text-align: left; }
         
-        /* 💡 修正：西暦・和暦の表示インプットの幅を強固に固定し、見切れを永久追放 */
-        input.year-label-input { font-weight: bold; font-size: 1rem; padding: 4px 8px; width: 240px; text-align: left; border: none; background: transparent; }
+        /* 💡 修正：インプット自体の横幅を中装の文字幅にジャストフィットさせ、右側のカッコをきれいに繋げる */
+        input.year-label-input { font-weight: bold; font-size: 1rem; padding: 4px 8px; width: auto; min-width: 200px; text-align: left; border: none; background: transparent; }
 
         .meta-input-group input:disabled {
             background: transparent !important;
@@ -61,7 +59,6 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        /* 編集時は追加枠用の点線デザインを適用 */
         .unlocked input.year-label-input {
             background: #f9f9f9;
             border: 1px solid #ccc;
