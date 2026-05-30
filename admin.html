@@ -48,7 +48,6 @@
         tr.row-hidden { background-color: #f5f5f5; }    
         tr:hover { filter: brightness(0.97); } 
         
-        /* 💡 修正：初期状態では枠線や独自背景をつけずプレーンにし、ロック解除時のみ点線枠が出現するCSS設計 */
         .editable-cell { padding: 4px; border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box; min-height: 24px; }
         .unlocked .editable-cell { cursor: pointer; background: rgba(255,255,255,0.8); border: 1px dashed #bbb; }
         
@@ -59,9 +58,21 @@
         .return-btn { background: #e0e0e0; color: #333; }
         .delete-btn { background: #ff4444; color: white; border-color: #ff4444; }
 
-        /* 💡 修正：無効化（disabled）されたプルダウンメニューが薄くなりすぎず、かつ操作できないスマートな見た目にするスタイル */
-        select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; }
-        select.table-select:disabled { background: rgba(0,0,0,0.03); color: #555; cursor: not-allowed; border-color: #ccc; opacity: 0.9; }
+        /* 💡 修正：プルダウンメニュー(select)の枠線・背景・矢印の制御用スタイル */
+        select.table-select { padding: 2px; font-size: 0.78rem; border-radius: 4px; background: white; color: #333; border: 1px solid #ccc; }
+        
+        /* ロック中（disabled状態）はブラウザ標準の枠や矢印(appearance)を完全に消し去り、文字だけにする */
+        select.table-select:disabled { 
+            background: transparent; 
+            border: none; 
+            color: #333; 
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+            padding: 0; 
+            cursor: default; 
+            opacity: 1;
+        }
 
         .batch-panel { display: none; background: #fff3e0; border: 2px solid #ff9800; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; }
         .batch-panel-text { font-weight: bold; color: #e65100; font-size: 0.9rem; }
@@ -73,7 +84,8 @@
         .row-selector { transform: scale(1.1); cursor: pointer; }
     </style>
 </head>
-<body class="lock-mode" id="body-wrapper"> <div class="container">
+<body class="lock-mode" id="body-wrapper">
+<div class="container">
     <h1>iPad 使用管理データベース</h1>
     
     <div class="top-bar">
@@ -157,13 +169,13 @@
             this.className = "btn-ui lock-btn unlocked";
             yearForm.style.display = "flex";
             ipadForm.style.display = "flex";
-            bodyWrapper.className = "unlocked"; // 💡 ボディのクラスを書き換えて、CSS側で破線枠を一斉に表示させる
+            bodyWrapper.className = "unlocked"; 
         } else {
             this.innerText = "ここを押して編集";
             this.className = "btn-ui lock-btn";
             yearForm.style.display = "none";
             ipadForm.style.display = "none";
-            bodyWrapper.className = "lock-mode"; // 💡 ロック状態のクラスに戻す（破線枠がすべて一瞬で隠れる）
+            bodyWrapper.className = "lock-mode"; 
         }
         renderDashboardStructure();
     };
@@ -294,7 +306,6 @@
                     row.className = "row-available";
                 }
                 
-                // 💡 修正：編集ロック状態に連動させて、すべてのプルダウン（select）にdisabled属性を自動付与・解除する
                 let statusHTML = `<select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'status', this.value)">
                     <option value="available" ${status==='available'?'selected':''}>🟢 公開</option>
                     <option value="borrowed" ${status==='borrowed'?'selected':''}>🔴 使用中</option>
@@ -482,10 +493,10 @@
         await setDoc(doc(db, "settings", "years_config"), { years: updated }, { merge: true });
     };
 
-    window.removeYearSlot = async function(yearValue) {
+    window.removeYearSlot = function(yearValue) {
         if (!confirm("この年度の枠組み設定を削除しますか？（中のiPadデータは削除されません）")) return;
         const updated = yearsConfig.filter(y => y.yearValue !== yearValue);
-        await setDoc(doc(db, "settings", "years_config"), { years: updated }, { merge: true });
+        setDoc(doc(db, "settings", "years_config"), { years: updated }, { merge: true });
     };
 
     document.getElementById('add-ipad-btn').onclick = async function() {
