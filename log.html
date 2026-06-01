@@ -160,8 +160,7 @@
 
             const cableText = data.hasCableIncluded !== false ? "有" : "無";
             const pencilText = data.hasPencilOut === true ? "あり" : "なし";
-
-            // 💡 修正：用途の部分のmarkタグを取り除き、すっきりとしたプレーンな文字列表示へお引っ越し
+            
             row.innerHTML = `
                 <td><strong>${itemId}</strong></td>
                 <td title="${model}">${model}</td>
