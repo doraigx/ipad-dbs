@@ -33,8 +33,11 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 450px; width: 90%; color: #fff; }
         .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
-        .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 15px; font-weight: normal; padding-left: 2px; }
+        .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 5px; font-weight: normal; padding-left: 2px; }
         
+        /* 💡 モーダル内の備考表示用スタイル（オレンジ色のボックス） */
+        .modal-notes-box { font-size: 0.8rem; color: #ffb74d; background: rgba(255,183,77,0.1); border-left: 3px solid #ff9800; padding: 6px 10px; border-radius: 4px; margin-bottom: 15px; display: none; word-break: break-all; white-space: pre-wrap; }
+
         .modal-field { margin-bottom: 12px; }
         .modal-field label { font-size: 0.85rem; color: #ccc; font-weight: bold; }
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
@@ -55,6 +58,8 @@
     <div class="modal-content">
         <div class="modal-title" id="modal-item-title">iPad使用申請</div>
         <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
+        
+        <div class="modal-notes-box" id="modal-item-notes"></div>
         
         <div class="modal-field">
             <label for="borrow-username">使用者氏名</label>
@@ -155,18 +160,19 @@
                         mainTile.className = "ipad-tile";
                         const itemNum = item.data.itemNo || item.id;
                         
-                        const cableNoticeHTML = item.data.hasCableIncluded === false ? `<div class="tile-sub-info">ケーブルなし</div>` : "";
+                        // 💡 タイルから「ケーブルなし」の表示を削除しました
 
                         if (item.data.isAvailable === false) {
                             mainTile.classList.add("borrowed");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info"> メンテナンス中</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info"> メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
                             mainTile.classList.add("borrowed");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">使用中</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用中</div>`;
                         } else {
                             mainTile.classList.add("available");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">使用可能</div>`;
-                            mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false);
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用可能</div>`;
+                            // 💡 モーダルを開く処理に備考（notes）のデータ（無ければ空文字）を渡すよう変更
+                            mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false, item.data.notes || "");
                         }
                         gridElement.appendChild(mainTile);
                     });
@@ -175,8 +181,8 @@
         });
     }
 
-    // ⚙️ モーダルを開くときの処理変更
-    function openBorrowModal(docId, itemNo, modelName, hasCable) {
+    // ⚙️ モーダルを開く関数に notes 引数を追加
+    function openBorrowModal(docId, itemNo, modelName, hasCable, notes) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
         
@@ -187,11 +193,20 @@
             subInfoContainer.innerText = "型番: " + modelName;
         }
 
+        // 💡 備考データが存在する場合のみ、メッセージ枠に内容をセットして表示させる
+        const notesContainer = document.getElementById('modal-item-notes');
+        if (notes && notes.trim() !== "") {
+            notesContainer.innerText = "📝 備考: " + notes;
+            notesContainer.style.display = "block";
+        } else {
+            notesContainer.innerText = "";
+            notesContainer.style.display = "none";
+        }
+
         document.getElementById('borrow-username').value = "";
         document.getElementById('borrow-purpose').value = "";
         document.getElementById('borrow-return-plan').value = "";
         
-        // 💡 データベース上の元の状態（管理者が登録したケーブル有無状態など）を初期チェック状態に反映
         document.getElementById('borrow-has-cable').checked = hasCable;
         
         document.getElementById('borrow-modal').style.display = "flex";
@@ -201,7 +216,6 @@
         document.getElementById('borrow-modal').style.display = "none";
     };
 
-    // ⚙️ 使用確定時の送信処理変更
     document.getElementById('modal-submit-btn').onclick = async () => {
         const inputName = document.getElementById('borrow-username').value.trim();
         const purpose = document.getElementById('borrow-purpose').value.trim();
@@ -219,7 +233,6 @@
             const currentModel = snap.exists() ? snap.data().model : "iPad";
             const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
             
-            // 💡 ユーザーが選択した最新のステータスを取得
             const userHasCable = document.getElementById('borrow-has-cable').checked;
 
             await updateDoc(ipadDocRef, {
@@ -228,7 +241,7 @@
                 borrowedAt: rentTime,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: userHasCable // 💡 ユーザーの選択をFirestore（ipads）に反映
+                hasCableIncluded: userHasCable
             });
 
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
@@ -244,7 +257,7 @@
                 returnedAt: null,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: userHasCable // 💡 管理履歴ログ側にもユーザーの選択を保存
+                hasCableIncluded: userHasCable
             });
 
             document.getElementById('borrow-modal').style.display = "none";
