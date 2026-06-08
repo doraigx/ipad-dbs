@@ -87,9 +87,14 @@
             <input type="text" id="borrow-purpose" placeholder="例: 授業利用、研究開発など">
         </div>
         <div class="modal-field">
-            <label for="borrow-return-plan">返却予定日</label>
-            <input type="date" id="borrow-return-plan">
-        </div>
+    <label for="borrow-return-plan">返却予定日</label>
+    <input type="date" id="borrow-return-plan">
+</div>
+<div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+    <input type="checkbox" id="borrow-has-cable" style="width: auto; margin: 0; transform: scale(1.2); cursor: pointer;" checked>
+    <label for="borrow-has-cable" style="cursor: pointer; user-select: none;">充電ケーブルも一緒に借りる</label>
+</div>
+<div class="modal-buttons">
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
             <button id="modal-submit-btn">使用を確定する</button>
