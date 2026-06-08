@@ -285,20 +285,8 @@
                     
                     <div class="grid-info-inputs" onclick="event.stopPropagation();">
                         <div class="meta-input-group">
-                            <label>購入台数:</label>
-                            <input type="number" value="${y.totalPurchased || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'totalPurchased', this.value)">
-                        </div>
-                        <div class="meta-input-group">
                             <label>使用可能:</label>
                             <span class="static-count-text">${liveRentableCount} 台</span>
-                        </div>
-                        <div class="meta-input-group">
-                            <label>担当者:</label>
-                            <input type="text" value="${y.managerName || ""}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'managerName', this.value)">
-                        </div>
-                        <div class="meta-input-group">
-                            <label>新入生数:</label>
-                            <input type="number" value="${y.freshmenCount || 0}" ${disabledAttr} onchange="window.updateYearMeta(${yearVal}, 'freshmenCount', this.value)">
                         </div>
                     </div>
                     
