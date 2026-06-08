@@ -375,9 +375,9 @@
                 }
                 
                 let statusHTML = `<select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'status', this.value)">
-                    <option value="available" ${status==='available'?'selected':''}>🟢 公開</option>
-                    <option value="borrowed" ${status==='borrowed'?'selected':''}>🔴 使用中</option>
-                    <option value="hidden" ${status==='hidden'?'selected':''}>⚫ 非公開</option>
+                    <option value="available" ${status==='available'?'selected':''}>公開</option>
+                    <option value="borrowed" ${status==='borrowed'?'selected':''}>使用中</option>
+                    <option value="hidden" ${status==='hidden'?'selected':''}>非公開</option>
                 </select>`;
 
                 const isChecked = selectedIpadIds.has(id) ? "checked" : "";
