@@ -196,7 +196,7 @@
         // 💡 備考データが存在する場合のみ、メッセージ枠に内容をセットして表示させる
         const notesContainer = document.getElementById('modal-item-notes');
         if (notes && notes.trim() !== "") {
-            notesContainer.innerText = "📝 備考: " + notes;
+            notesContainer.innerText = "備考: " + notes;
             notesContainer.style.display = "block";
         } else {
             notesContainer.innerText = "";
