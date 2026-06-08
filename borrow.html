@@ -252,7 +252,7 @@
                         myTile.innerHTML = `
                             <div>No.${data.itemNo || docId}</div>
                             <div class="tile-model">${data.model || "未設定"}</div>
-                            <div class="tile-info">🔄 タップして返却</div>
+                            <div class="tile-info">返却</div>
                         `;
                         myTile.onclick = () => handleSingleReturn(docId);
                         myGrid.appendChild(myTile);
