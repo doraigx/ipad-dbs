@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad貸し出し　利用者用</title>
+    <title>iPad貸し出し 利用者用</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
@@ -65,7 +65,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>iPad貸し出し　利用者用</h1>
+    <h1>iPad貸し出し 利用者用</h1>
 
     <div class="card" id="auth-section">
         <p id="user-info">ユーザー情報を読み込み中...</p>
@@ -87,14 +87,13 @@
             <input type="text" id="borrow-purpose" placeholder="例: 授業利用、研究開発など">
         </div>
         <div class="modal-field">
-    <label for="borrow-return-plan">返却予定日</label>
-    <input type="date" id="borrow-return-plan">
-</div>
-<div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
-    <input type="checkbox" id="borrow-has-cable" style="width: auto; margin: 0; transform: scale(1.2); cursor: pointer;" checked>
-    <label for="borrow-has-cable" style="cursor: pointer; user-select: none;">充電ケーブルも一緒に借りる</label>
-</div>
-<div class="modal-buttons">
+            <label for="borrow-return-plan">返却予定日</label>
+            <input type="date" id="borrow-return-plan">
+        </div>
+        <div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+            <input type="checkbox" id="borrow-has-cable" style="width: auto; margin: 0; transform: scale(1.2); cursor: pointer;" checked>
+            <label for="borrow-has-cable" style="cursor: pointer; user-select: none;">充電ケーブルも一緒に借りる</label>
+        </div>
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
             <button id="modal-submit-btn">使用を確定する</button>
@@ -306,6 +305,7 @@
         });
     }
 
+    // ⚙️ モーダルを開くときの処理変更
     function openBorrowModal(docId, itemNo, modelName, hasCable) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
@@ -319,6 +319,10 @@
 
         document.getElementById('borrow-purpose').value = "";
         document.getElementById('borrow-return-plan').value = "";
+        
+        // 💡 データベース上の元の状態（管理者が登録したケーブル有無状態など）を初期チェック状態に反映
+        document.getElementById('borrow-has-cable').checked = hasCable;
+        
         document.getElementById('borrow-modal').style.display = "flex";
     }
 
@@ -326,6 +330,7 @@
         document.getElementById('borrow-modal').style.display = "none";
     };
 
+    // ⚙️ 使用確定時の送信処理変更
     document.getElementById('modal-submit-btn').onclick = async () => {
         const purpose = document.getElementById('borrow-purpose').value.trim();
         const returnPlan = document.getElementById('borrow-return-plan').value;
@@ -340,14 +345,17 @@
             
             const currentModel = snap.exists() ? snap.data().model : "iPad";
             const currentYearValue = snap.exists() ? (snap.data().yearValue || 0) : 0;
-            const currentCableStatus = snap.exists() ? (snap.data().hasCableIncluded !== false) : true;
+            
+            // 💡 ユーザーがチェックを入れた最新のステータスを取得
+            const userHasCable = document.getElementById('borrow-has-cable').checked;
 
             await updateDoc(ipadDocRef, {
                 status: "borrowed",
                 borrowedByName: myCustomName,
                 borrowedAt: rentTime,
                 purpose: purpose,
-                returnPlanDate: returnPlan
+                returnPlanDate: returnPlan,
+                hasCableIncluded: userHasCable // 💡 ユーザーの選択をFirestoreに反映
             });
 
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
@@ -363,7 +371,7 @@
                 returnedAt: null,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: currentCableStatus
+                hasCableIncluded: userHasCable // 💡 管理履歴ログ側にもユーザーの選択を保存
             });
 
             document.getElementById('borrow-modal').style.display = "none";
