@@ -35,7 +35,6 @@
         .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
         .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 5px; font-weight: normal; padding-left: 2px; }
         
-        /* 💡 モーダル内の備考表示用スタイル（オレンジ色のボックス） */
         .modal-notes-box { font-size: 0.8rem; color: #ffb74d; background: rgba(255,183,77,0.1); border-left: 3px solid #ff9800; padding: 6px 10px; border-radius: 4px; margin-bottom: 15px; display: none; word-break: break-all; white-space: pre-wrap; }
 
         .modal-field { margin-bottom: 12px; }
@@ -56,7 +55,7 @@
 
 <div id="borrow-modal" class="modal">
     <div class="modal-content">
-        <div class="modal-title" id="modal-item-title">iPad使用</div>
+        <div class="modal-title" id="modal-item-title">iPad使用申請</div>
         <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
         
         <div class="modal-notes-box" id="modal-item-notes"></div>
@@ -79,14 +78,14 @@
         </div>
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
-            <button id="modal-submit-btn">確定</button>
+            <button id="modal-submit-btn">使用を確定する</button>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfoLWu2PPbUoJXH7uxxXCBjxNVWT22gzU",
@@ -159,19 +158,18 @@
                         const mainTile = document.createElement('div');
                         mainTile.className = "ipad-tile";
                         const itemNum = item.data.itemNo || item.id;
-                        
-                        // 💡 タイルから「ケーブルなし」の表示を削除しました
 
                         if (item.data.isAvailable === false) {
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info"> メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
                             mainTile.classList.add("borrowed");
-                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用中</div>`;
+                            mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用中（タップで返却）</div>`;
+                            // 💡 ゲスト用画面でも使用中のタイルをタップして返却できるように紐付け
+                            mainTile.onclick = () => handleSingleReturn(item.id);
                         } else {
                             mainTile.classList.add("available");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用可能</div>`;
-                            // 💡 モーダルを開く処理に備考（notes）のデータ（無ければ空文字）を渡すよう変更
                             mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false, item.data.notes || "");
                         }
                         gridElement.appendChild(mainTile);
@@ -181,7 +179,6 @@
         });
     }
 
-    // ⚙️ モーダルを開く関数に notes 引数を追加
     function openBorrowModal(docId, itemNo, modelName, hasCable, notes) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
@@ -193,10 +190,9 @@
             subInfoContainer.innerText = "型番: " + modelName;
         }
 
-        // 💡 備考データが存在する場合のみ、メッセージ枠に内容をセットして表示させる
         const notesContainer = document.getElementById('modal-item-notes');
         if (notes && notes.trim() !== "") {
-            notesContainer.innerText = "備考: " + notes;
+            notesContainer.innerText = "📝 備考: " + notes;
             notesContainer.style.display = "block";
         } else {
             notesContainer.innerText = "";
@@ -264,6 +260,31 @@
             alert("使用申請の確定処理が正常に完了しました！");
         } catch (e) { alert("申請の処理中にエラーが発生しました。"); }
     };
+
+    // ⚙️ 【修正】ゲスト画面から返却された時のリセット処理
+    async function handleSingleReturn(docId) {
+        if (!confirm("このiPadの返却処理を完了しますか？")) return;
+        try {
+            const docRef = doc(db, "ipads", docId);
+            const snap = await getDoc(docRef);
+            if (snap.exists() && snap.data().status === "borrowed") {
+                // 💡 返却時に、statusを空にし、hasCableIncludedを false(ー) にリセットします
+                await updateDoc(docRef, { 
+                    status: "available", 
+                    borrowedByName: "",
+                    purpose: "",
+                    returnPlanDate: "",
+                    hasCableIncluded: false
+                });
+
+                const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", docId), where("status", "==", "borrowed"));
+                const logSnap = await getDocs(logQuery);
+                logSnap.forEach((logDoc) => {
+                    updateDoc(doc(db, "logs", logDoc.id), { status: "returned", returnedAt: new Date() });
+                });
+            }
+        } catch (e) { alert("返却に失敗しました。"); }
+    }
 </script>
 </body>
 </html>
