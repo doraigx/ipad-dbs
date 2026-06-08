@@ -31,7 +31,6 @@
         .badge-rent { background: #f44336; }
         .badge-return { background: #4caf50; }
         
-        /* 💡 変更：黄色のハイライト(mark)用の旧スタイルを撤去。プレーンテキストとして綺麗に出力します */
         .log-purpose-text { font-weight: normal; color: #333; }
         .empty-log-msg { text-align: center; color: #888; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     </style>
@@ -52,20 +51,19 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 8%;">管理番号</th>
-                    <th style="width: 16%;">型番 / モデル名</th>
-                    <th style="width: 8%;">状態</th>
-                    <th style="width: 12%;">使用者氏名</th>
-                    <th style="width: 15%;">用途</th>
-                    <th style="width: 9%;">返却予定日</th>
-                    <th style="width: 6%;">ケーブル</th>
-                    <th style="width: 6%;">Pencil</th>
-                    <th style="width: 10%;">使用開始日時</th>
-                    <th style="width: 10%;">返却日時</th>
+                    <th style="width: 10%;">管理番号</th>
+                    <th style="width: 18%;">型番 / モデル名</th>
+                    <th style="width: 10%;">状態</th>
+                    <th style="width: 14%;">使用者氏名</th>
+                    <th style="width: 18%;">用途</th>
+                    <th style="width: 10%;">返却予定日</th>
+                    <th style="width: 8%;">ケーブル</th>
+                    <th style="width: 12%;">使用開始日時</th>
+                    <th style="width: 12%;">返却日時</th>
                 </tr>
             </thead>
             <tbody id="tbody-global-log">
-                <tr><td colspan="10" class="empty-log-msg">ログをリアルタイム同期中...</td></tr>
+                <tr><td colspan="9" class="empty-log-msg">ログをリアルタイム同期中...</td></tr>
             </tbody>
         </table>
     </div>
@@ -103,7 +101,7 @@
         globalLogsCached.sort((a, b) => b.borrowedAt.seconds - a.borrowedAt.seconds);
         renderGlobalLogTable();
     }, (error) => {
-        document.getElementById('tbody-global-log').innerHTML = `<tr><td colspan="10" class="empty-log-msg" style="color:#f44336;">データの同期に失敗しました。</td></tr>`;
+        document.getElementById('tbody-global-log').innerHTML = `<tr><td colspan="9" class="empty-log-msg" style="color:#f44336;">データの同期に失敗しました。</td></tr>`;
     });
 
     function renderGlobalLogTable() {
@@ -113,7 +111,7 @@
         const filterWord = document.getElementById('log-search-box').value.trim().toLowerCase();
 
         if (globalLogsCached.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="empty-log-msg">記録されている使用履歴はまだありません。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="empty-log-msg">記録されている使用履歴はまだありません。</td></tr>`;
             return;
         }
 
@@ -159,7 +157,6 @@
                 : `<span class="badge badge-return">返却済</span>`;
 
             const cableText = data.hasCableIncluded !== false ? "有" : "無";
-            const pencilText = data.hasPencilOut === true ? "あり" : "なし";
             
             row.innerHTML = `
                 <td><strong>${itemId}</strong></td>
@@ -169,7 +166,6 @@
                 <td title="${purpose}"><span class="log-purpose-text">${purpose}</span></td>
                 <td><b style="color:#0d47a1;">${returnPlan}</b></td>
                 <td>${cableText}</td>
-                <td>${pencilText}</td>
                 <td style="font-size:0.75rem; font-weight:500; color:#555;">${rentDateStr}</td>
                 <td style="font-size:0.75rem; font-weight:500; color:#2e7d32;">${returnDateStr}</td>
             `;
@@ -177,7 +173,7 @@
         });
 
         if (renderedCount === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="empty-log-msg">検索条件に一致する履歴ログは見つかりませんでした。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="empty-log-msg">検索条件に一致する履歴ログは見つかりませんでした。</td></tr>`;
         }
     }
 
