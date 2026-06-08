@@ -291,12 +291,11 @@
                             onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
                 </div>
-                <div class="grid-info-inputs" onclick="event.stopPropagation();" style="grid-template-columns: 1fr; justify-content: flex-end;">
-                    <div class="meta-input-group" style="justify-content: flex-end;">
-                        <label>現在使用可能:</label>
-                        <span class="static-count-text">${liveRentableCount} 台</span>
-                    </div>
-                </div>
+                
+                <div class="meta-input-group">
+                            <label>使用可能:</label>
+                            <span class="static-count-text">${liveRentableCount} 台</span>
+                        </div>
                 ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">削除</button>` : "<div style='width:38px;'></div>"}
             </div>
             <div class="accordion-content">
