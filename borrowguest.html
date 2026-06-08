@@ -68,10 +68,6 @@
             <label for="borrow-return-plan">返却予定日</label>
             <input type="date" id="borrow-return-plan">
         </div>
-        <div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
-            <input type="checkbox" id="borrow-pencil" style="width: auto; margin-top: 0; transform: scale(1.3);">
-            <label for="borrow-pencil" style="cursor: pointer;">Pencilを一緒に使用する</label>
-        </div>
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
             <button id="modal-submit-btn">使用を確定する</button>
@@ -161,7 +157,6 @@
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info"> メンテナンス中</div>`;
                         } else if (item.data.status === "borrowed") {
-                            // 💡 修正：残っていた古い記述をクリアし、名前を一切出さず完全に「🔴 使用中」のみの表記に統一
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}${cableNoticeHTML}</div><div class="tile-info">使用中</div>`;
                         } else {
@@ -190,7 +185,6 @@
         document.getElementById('borrow-username').value = "";
         document.getElementById('borrow-purpose').value = "";
         document.getElementById('borrow-return-plan').value = "";
-        document.getElementById('borrow-pencil').checked = false;
         document.getElementById('borrow-modal').style.display = "flex";
     }
 
@@ -202,7 +196,6 @@
         const inputName = document.getElementById('borrow-username').value.trim();
         const purpose = document.getElementById('borrow-purpose').value.trim();
         const returnPlan = document.getElementById('borrow-return-plan').value;
-        const includePencil = document.getElementById('borrow-pencil').checked;
 
         if (!inputName) return alert("使用者氏名を入力してください。");
         if (!purpose) return alert("用途を入力してください。");
@@ -222,8 +215,7 @@
                 borrowedByName: inputName,
                 borrowedAt: rentTime,
                 purpose: purpose,
-                returnPlanDate: returnPlan,
-                hasPencilOut: includePencil
+                returnPlanDate: returnPlan
             });
 
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
@@ -239,8 +231,7 @@
                 returnedAt: null,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: currentCableStatus, 
-                hasPencilOut: includePencil
+                hasCableIncluded: currentCableStatus
             });
 
             document.getElementById('borrow-modal').style.display = "none";
