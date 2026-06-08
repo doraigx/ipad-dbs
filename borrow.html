@@ -57,7 +57,6 @@
         .modal-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #2196f3; padding-bottom: 5px; }
         .modal-sub-title-info { font-size: 0.8rem; color: #ccc; margin-bottom: 5px; font-weight: normal; padding-left: 2px; }
         
-        /* 💡 モーダル内の備考表示用スタイル */
         .modal-notes-box { font-size: 0.8rem; color: #ffb74d; background: rgba(255,183,77,0.1); border-left: 3px solid #ff9800; padding: 6px 10px; border-radius: 4px; margin-bottom: 15px; display: none; word-break: break-all; white-space: pre-wrap; }
 
         .modal-field { margin-bottom: 12px; }
@@ -82,7 +81,7 @@
 
 <div id="borrow-modal" class="modal">
     <div class="modal-content">
-        <div class="modal-title" id="modal-item-title">iPad使用</div>
+        <div class="modal-title" id="modal-item-title">iPad使用申請</div>
         <div class="modal-sub-title-info" id="modal-item-sub-info"></div>
         
         <div class="modal-notes-box" id="modal-item-notes"></div>
@@ -248,7 +247,6 @@
                         const myTile = document.createElement('div');
                         myTile.className = "ipad-tile my-borrowed";
                         
-                        // 💡 タイルから「ケーブルなし」の表示指定を削除
                         myTile.innerHTML = `
                             <div>No.${data.itemNo || docId}</div>
                             <div class="tile-model">${data.model || "未設定"}</div>
@@ -279,8 +277,6 @@
                         mainTile.className = "ipad-tile";
                         const itemNum = item.data.itemNo || item.id;
 
-                        // 💡 タイル上の cableNoticeHTML（ケーブルなし表示）の生成と埋め込みを完全に削除
-
                         if (item.data.isAvailable === false) {
                             mainTile.classList.add("borrowed");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">メンテナンス中</div>`;
@@ -296,7 +292,6 @@
                         } else {
                             mainTile.classList.add("available");
                             mainTile.innerHTML = `<div>No.${itemNum}</div><div class="tile-model">${item.data.model || "iPad"}</div><div class="tile-info">使用可能</div>`;
-                            // 💡 モーダルを開く処理に備考（notes）のデータを渡すように修正
                             mainTile.onclick = () => openBorrowModal(item.id, itemNum, item.data.model, item.data.hasCableIncluded !== false, item.data.notes || "");
                         }
                         gridElement.appendChild(mainTile);
@@ -310,7 +305,6 @@
         });
     }
 
-    // ⚙️ モーダルを開く関数に引数 notes を追加し、表示を制御
     function openBorrowModal(docId, itemNo, modelName, hasCable, notes) {
         currentTargetDocId = docId;
         document.getElementById('modal-item-title').innerText = `iPad使用申請 (No.${itemNo})`;
@@ -322,7 +316,6 @@
             subInfoContainer.innerText = "型番: " + modelName;
         }
 
-        // 💡 備考が存在する場合のみ、メッセージボックスにテキストを入れて表示する
         const notesContainer = document.getElementById('modal-item-notes');
         if (notes && notes.trim() !== "") {
             notesContainer.innerText = "備考: " + notes;
@@ -391,17 +384,20 @@
         } catch (e) { alert("使用申請に失敗しました。"); }
     };
 
+    // ⚙️ 【連動修正】利用者画面から手動返却された時のリセット処理
     async function handleSingleReturn(docId) {
         if (!confirm("このiPadの返却処理を完了しますか？")) return;
         try {
             const docRef = doc(db, "ipads", docId);
             const snap = await getDoc(docRef);
             if (snap.exists() && snap.data().status === "borrowed") {
+                // 💡 返却時に、statusなどを空にし、hasCableIncludedを false（ー） にリセット
                 await updateDoc(docRef, { 
                     status: "available", 
                     borrowedByName: "",
                     purpose: "",
-                    returnPlanDate: ""
+                    returnPlanDate: "",
+                    hasCableIncluded: false
                 });
 
                 const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", docId), where("status", "==", "borrowed"));
