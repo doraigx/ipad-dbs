@@ -123,6 +123,16 @@
         .batch-danger-btn { background: #ff4444; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .batch-danger-btn:hover { background: #cc0000; }
         .row-selector { transform: scale(1.1); cursor: pointer; }
+        .serial-mask {
+    color: #9e9e9e;
+    cursor: pointer;
+    font-family: monospace;
+    user-select: none;
+}
+.serial-mask:hover {
+    color: #616161;
+    text-decoration: underline;
+}
     </style>
 </head>
 <body class="lock-mode" id="body-wrapper">
@@ -255,182 +265,139 @@
     }
 
     function renderDashboardStructure() {
-        const container = document.getElementById('dynamic-year-blocks');
-        container.innerHTML = "";
-        const filterWord = document.getElementById('search-box').value.trim().toLowerCase();
+    const container = document.getElementById('dynamic-year-blocks');
+    container.innerHTML = "";
+    const filterWord = document.getElementById('search-box').value.trim().toLowerCase();
+    const disabledAttr = window.isEditingUnlocked ? "" : "disabled";
 
-        const disabledAttr = window.isEditingUnlocked ? "" : "disabled";
+    yearsConfig.forEach(y => {
+        const yearVal = y.yearValue;
+        const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
+        const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
+        const isOpenClass = openedYearIds.has(yearVal) ? "open" : "";
 
-        yearsConfig.forEach(y => {
-            const yearVal = y.yearValue;
-            const ipadsInYear = rawIpads.filter(item => item.yearValue == yearVal);
-            const liveRentableCount = ipadsInYear.filter(item => item.status === "available").length;
+        const block = document.createElement('div');
+        block.className = `year-summary-box ${isOpenClass}`;
+        block.id = `box-year-${yearVal}`;
 
-            const isOpenClass = openedYearIds.has(yearVal) ? "open" : "";
-
-            const block = document.createElement('div');
-            block.className = `year-summary-box ${isOpenClass}`;
-            block.id = `box-year-${yearVal}`;
-
-            block.innerHTML = `
-                <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
-                    <div class="header-title-wrapper">
-                        <span class="accordion-arrow">▼</span>
-                        <div class="meta-input-group" onclick="event.stopPropagation();">
-                            <input type="text" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
-                                onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
-                                onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
-                        </div>
-                    </div>
-                    
-                    <div class="grid-info-inputs" onclick="event.stopPropagation();">
-                        <div class="meta-input-group">
-                            <label>使用可能:</label>
-                            <span class="static-count-text">${liveRentableCount} 台</span>
-                        </div>
-                    </div>
-                    
-                    ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">削除</button>` : "<div style='width:38px;'></div>"}
-                </div>
-                
-                <div class="accordion-content">
-                    <div class="accordion-inner-padding">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 3%;">選択</th>
-                                    <th style="width: 6%;">年度-No</th>
-                                    <th style="width: 17%;">iPadの名前 / 備考欄</th>
-                                    <th style="width: 11%;">シリアル番号</th>
-                                    <th style="width: 9%;">現在の状態</th>
-                                    <th style="width: 10%;">使用者氏名</th>
-                                    <th style="width: 10%;">用途</th>
-                                    <th style="width: 9%;">返却予定日</th>
-                                    <th style="width: 6%;">使用</th>
-                                    <th style="width: 5%;">ケーブル</th>
-                                    <th style="width: 5%;">ペン</th>
-                                    <th style="width: 9%;">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-year-${yearVal}"></tbody>
-                        </table>
+        // 購入台数・新入生・担当者を削除し「使用可能」のみにしたヘッダー
+        block.innerHTML = `
+            <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
+                <div class="header-title-wrapper">
+                    <span class="accordion-arrow">▼</span>
+                    <div class="meta-input-group" onclick="event.stopPropagation();">
+                        <input type="text" class="year-label-input" value="${y.yearLabel}" ${disabledAttr} 
+                            onkeydown="if(event.key==='Enter'){window.updateYearMeta(${yearVal}, 'yearLabel', this.value); this.blur();}" 
+                            onblur="window.updateYearMeta(${yearVal}, 'yearLabel', this.value)">
                     </div>
                 </div>
-            `;
-            container.appendChild(block);
+                <div class="grid-info-inputs" onclick="event.stopPropagation();" style="grid-template-columns: 1fr; justify-content: flex-end;">
+                    <div class="meta-input-group" style="justify-content: flex-end;">
+                        <label>現在使用可能:</label>
+                        <span class="static-count-text">${liveRentableCount} 台</span>
+                    </div>
+                </div>
+                ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">削除</button>` : "<div style='width:38px;'></div>"}
+            </div>
+            <div class="accordion-content">
+                <div class="accordion-inner-padding">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 3%;">選択</th>
+                                <th style="width: 6%;">年度-No</th>
+                                <th style="width: 17%;">iPadの名前 / 備考欄</th>
+                                <th style="width: 11%;">シリアル番号</th>
+                                <th style="width: 9%;">現在の状態</th>
+                                <th style="width: 10%;">使用者氏名</th>
+                                <th style="width: 10%;">用途</th>
+                                <th style="width: 9%;">返却予定日</th>
+                                <th style="width: 6%;">使用</th>
+                                <th style="width: 5%;">ケーブル</th>
+                                <th style="width: 5%;">ペン</th>
+                                <th style="width: 9%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-year-${yearVal}"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        container.appendChild(block);
 
-            const titleInput = block.querySelector('.year-label-input');
-            if (!window.isEditingUnlocked && titleInput) {
-                titleInput.style.border = 'none';
-                titleInput.style.background = 'transparent';
-                titleInput.style.padding = '4px 0';
+        const tbody = document.getElementById(`tbody-year-${yearVal}`);
+        ipadsInYear.sort((a,b) => Number(a.itemNo) - Number(b.itemNo));
+
+        ipadsInYear.forEach(item => {
+            const id = item.id;
+            const model = item.model || "未設定";
+            const serial = item.serialNo || "—";
+            const status = item.status || "available";
+            const borrowedByName = item.borrowedByName || "—";
+            const purpose = item.purpose || "—";
+            const returnPlan = item.returnPlanDate || "—";
+            const isAvailable = item.isAvailable !== false;
+            const hasCable = item.hasCableIncluded !== false;
+            const hasPencilOut = item.hasPencilOut === true;
+            const notes = item.notes || "";
+
+            // フィルタ処理（省略なし）
+            if (filterWord) {
+                const matchId = id.toLowerCase().includes(filterWord);
+                const matchModel = model.toLowerCase().includes(filterWord);
+                const matchSerial = serial.toLowerCase().includes(filterWord);
+                const matchUser = borrowedByName.toLowerCase().includes(filterWord);
+                const matchPurpose = purpose.toLowerCase().includes(filterWord);
+                const matchNotes = notes.toLowerCase().includes(filterWord);
+                if (!matchId && !matchModel && !matchSerial && !matchUser && !matchPurpose && !matchNotes) return;
             }
 
-            const tbody = document.getElementById(`tbody-year-${yearVal}`);
-            ipadsInYear.sort((a,b) => Number(a.itemNo) - Number(b.itemNo));
+            const row = document.createElement('tr');
+            row.className = status === "borrowed" ? "row-borrowed" : (status === "hidden" ? "row-hidden" : "row-available");
+            
+            // シリアル番号のマスク表示ロジック
+            const serialDisplay = (window.isEditingUnlocked) ? serial : `<span class="serial-mask" onclick="this.innerHTML='${serial}'; this.classList.remove('serial-mask'); event.stopPropagation();">XXXXXXXXXXX</span>`;
 
-            ipadsInYear.forEach(item => {
-                const id = item.id;
-                const model = item.model || "未設定";
-                const serial = item.serialNo || "—";
-                const status = item.status || "available";
-                const borrowedByName = item.borrowedByName || "—";
-                const purpose = item.purpose || "—";
-                const returnPlan = item.returnPlanDate || "—";
-                const isAvailable = item.isAvailable !== false; 
-                const hasCable = item.hasCableIncluded !== false;
-                const hasPencilOut = item.hasPencilOut === true;
-                const notes = item.notes || ""; 
-
-                if (filterWord) {
-                    const matchId = id.toLowerCase().includes(filterWord);
-                    const matchModel = model.toLowerCase().includes(filterWord);
-                    const matchSerial = serial.toLowerCase().includes(filterWord);
-                    const matchUser = borrowedByName.toLowerCase().includes(filterWord);
-                    const matchPurpose = purpose.toLowerCase().includes(filterWord);
-                    const matchNotes = notes.toLowerCase().includes(filterWord);
-                    if (!matchId && !matchModel && !matchSerial && !matchUser && !matchPurpose && !matchNotes) return;
-                }
-
-                const row = document.createElement('tr');
-                
-                if (status === "borrowed") {
-                    row.className = "row-borrowed";
-                } else if (status === "hidden") {
-                    row.className = "row-hidden";
-                } else {
-                    row.className = "row-available";
-                }
-                
-                let statusHTML = `<select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'status', this.value)">
+            row.innerHTML = `
+                <td style="text-align:center;"><input type="checkbox" class="row-selector" value="${id}" ${selectedIpadIds.has(id) ? "checked" : ""} onchange="window.handleCheckboxClick(this)"></td>
+                <td><strong>${id}</strong></td>
+                <td>
+                    <div class="editable-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div>
+                    <div class="notes-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'notes', this)}">${notes || (window.isEditingUnlocked ? '<span class="notes-empty">クリックして備考を入力...</span>' : "")}</div>
+                </td>
+                <td ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'serialNo', this)}">${serialDisplay}</td>
+                <td><select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'status', this.value)">
                     <option value="available" ${status==='available'?'selected':''}>公開</option>
                     <option value="borrowed" ${status==='borrowed'?'selected':''}>使用中</option>
                     <option value="hidden" ${status==='hidden'?'selected':''}>非公開</option>
-                </select>`;
-
-                const isChecked = selectedIpadIds.has(id) ? "checked" : "";
-                let checkboxHTML = `<input type="checkbox" class="row-selector" value="${id}" ${isChecked} onchange="window.handleCheckboxClick(this)">`;
-                
-                let actionHTML = "";
-                if (status === "borrowed") {
-                    actionHTML = `
-                        <div class="button-container">
-                            <button class="action-btn return-btn" onclick="window.forceReturnIpad('${id}')">返却</button>
-                            <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
-                        </div>
-                    `;
-                } else {
-                    actionHTML = `
-                        <div class="button-container">
-                            <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
-                        </div>
-                    `;
-                }
-
-                let notesHTML = "";
-                if (notes) {
-                    notesHTML = notes;
-                } else if (window.isEditingUnlocked) {
-                    notesHTML = `<span class="notes-empty">クリックして備考を入力...</span>`;
-                }
-
-                row.innerHTML = `
-                    <td style="text-align:center;">${checkboxHTML}</td>
-                    <td><strong>${id}</strong></td>
-                    <td>
-                        <div class="editable-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'model', this)}">${model}</div>
-                        <div class="notes-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'notes', this)}">${notesHTML}</div>
-                    </td>
-                    <td><div class="editable-cell" ondblclick="if(window.isEditingUnlocked){window.startEditCell('${id}', 'serialNo', this)}">${serial}</div></td>
-                    <td>${statusHTML}</td>
-                    <td><strong>${borrowedByName}</strong></td>
-                    <td>${purpose}</td>
-                    <td>${returnPlan}</td>
-                    <td>
-                        <select class="table-select" ${disabledAttr} onchange="window.handleAvailabilityChange('${id}', this.value)">
-                            <option value="true" ${isAvailable?'selected':''}>可能</option>
-                            <option value="false" ${!isAvailable?'selected':''}>不可</option>
-                        </select>
-                    </td>
-                    <td>
-                        <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
-                            <option value="true" ${hasCable?'selected':''}>有</option>
-                            <option value="false" ${!hasCable?'selected':''}>無</option>
-                        </select>
-                    </td>
-                    <td>
-                        <select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
-                            <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
-                            <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
-                        </select>
-                    </td>
-                    <td>${actionHTML}</td>
-                `;
-                tbody.appendChild(row);
-            });
+                </select></td>
+                <td><strong>${borrowedByName}</strong></td>
+                <td>${purpose}</td>
+                <td>${returnPlan}</td>
+                <td><select class="table-select" ${disabledAttr} onchange="window.handleAvailabilityChange('${id}', this.value)">
+                    <option value="true" ${isAvailable?'selected':''}>可能</option>
+                    <option value="false" ${!isAvailable?'selected':''}>不可</option>
+                </select></td>
+                <td><select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
+                    <option value="true" ${hasCable?'selected':''}>有</option>
+                    <option value="false" ${!hasCable?'selected':''}>無</option>
+                </select></td>
+                <td><select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
+                    <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
+                    <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
+                </select></td>
+                <td>
+                    <div class="button-container">
+                        ${status === "borrowed" ? `<button class="action-btn return-btn" onclick="window.forceReturnIpad('${id}')">返却</button>` : ""}
+                        <button class="action-btn delete-btn" onclick="window.deleteIpad('${id}')">削除</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
         });
-        window.refreshBatchPanelUI();
-    }
+    });
+    window.refreshBatchPanelUI();
+}
 
     window.toggleAccordionBlock = function(yearValue) {
         const box = document.getElementById(`box-year-${yearValue}`);
