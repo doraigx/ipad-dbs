@@ -20,7 +20,6 @@
         .log-nav-btn { display: flex; align-items: center; justify-content: center; padding: 0 20px; background: #0d47a1; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; text-decoration: none; white-space: nowrap; transition: 0.2s; }
         .log-nav-btn:hover { background: #0a3680; }
 
-        /* 💡 新規：「手動追加」ボタン（borrowguest.htmlへのジャンプリンク）専用のオレンジスタイル */
         .guest-nav-btn { display: flex; align-items: center; justify-content: center; padding: 0 20px; background: #ff9800; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; text-decoration: none; white-space: nowrap; transition: 0.2s; }
         .guest-nav-btn:hover { background: #e65100; }
 
@@ -72,7 +71,7 @@
         .admin-form { display: none; background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 20px; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
         .form-group label { font-size: 0.8rem; font-weight: bold; color: #555; }
-        .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; background: white; height: 36px; box-sizing: border-box; height: 36px; }
+        .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; background: white; height: 36px; box-sizing: border-box; }
         
         .btn-ui { padding: 6px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
         .lock-btn { background: #607d8b; color: white; }
@@ -123,16 +122,8 @@
         .batch-danger-btn { background: #ff4444; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .batch-danger-btn:hover { background: #cc0000; }
         .row-selector { transform: scale(1.1); cursor: pointer; }
-        .serial-mask {
-    color: #9e9e9e;
-    cursor: pointer;
-    font-family: monospace;
-    user-select: none;
-}
-.serial-mask:hover {
-    color: #616161;
-    text-decoration: underline;
-}
+        .serial-mask { color: #9e9e9e; cursor: pointer; font-family: monospace; user-select: none; }
+        .serial-mask:hover { color: #616161; text-decoration: underline; }
     </style>
 </head>
 <body class="lock-mode" id="body-wrapper">
@@ -168,7 +159,6 @@
             <label>表示名</label>
             <input type="text" id="new-year-label" placeholder="例: 2018年度（平成30年度）">
         </div>
-        <div class="form-group" style="display:none; flex:0;"></div>
         <button class="add-btn" id="add-year-btn" style="background: #ff9800;">年度枠を追加</button>
     </div>
 
@@ -280,7 +270,6 @@
         block.className = `year-summary-box ${isOpenClass}`;
         block.id = `box-year-${yearVal}`;
 
-        // 購入台数・新入生・担当者を削除し「使用可能」のみにしたヘッダー
         block.innerHTML = `
             <div class="summary-header" onclick="window.toggleAccordionBlock(${yearVal})">
                 <div class="header-title-wrapper">
@@ -293,9 +282,9 @@
                 </div>
                 
                 <div class="meta-input-group">
-                            <label>使用可能:</label>
-                            <span class="static-count-text">${liveRentableCount} 台</span>
-                        </div>
+                    <label>使用可能:</label>
+                    <span class="static-count-text">${liveRentableCount} 台</span>
+                </div>
                 ${window.isEditingUnlocked ? `<button class="action-btn delete-btn" onclick="event.stopPropagation(); window.removeYearSlot(${yearVal})">削除</button>` : "<div style='width:38px;'></div>"}
             </div>
             <div class="accordion-content">
@@ -303,18 +292,17 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 3%;">選択</th>
-                                <th style="width: 6%;">年度-No</th>
-                                <th style="width: 17%;">iPadの名前 / 備考欄</th>
-                                <th style="width: 11%;">シリアル番号</th>
-                                <th style="width: 9%;">現在の状態</th>
-                                <th style="width: 10%;">使用者氏名</th>
-                                <th style="width: 10%;">用途</th>
-                                <th style="width: 9%;">返却予定日</th>
+                                <th style="width: 4%;">選択</th>
+                                <th style="width: 8%;">年度-No</th>
+                                <th style="width: 22%;">iPadの名前 / 備考欄</th>
+                                <th style="width: 13%;">シリアル番号</th>
+                                <th style="width: 10%;">現在の状態</th>
+                                <th style="width: 11%;">使用者氏名</th>
+                                <th style="width: 11%;">用途</th>
+                                <th style="width: 10%;">返却予定日</th>
                                 <th style="width: 6%;">使用</th>
                                 <th style="width: 5%;">ケーブル</th>
-                                <th style="width: 5%;">ペン</th>
-                                <th style="width: 9%;">操作</th>
+                                <th style="width: 10%;">操作</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-year-${yearVal}"></tbody>
@@ -337,10 +325,8 @@
             const returnPlan = item.returnPlanDate || "—";
             const isAvailable = item.isAvailable !== false;
             const hasCable = item.hasCableIncluded !== false;
-            const hasPencilOut = item.hasPencilOut === true;
             const notes = item.notes || "";
 
-            // フィルタ処理（省略なし）
             if (filterWord) {
                 const matchId = id.toLowerCase().includes(filterWord);
                 const matchModel = model.toLowerCase().includes(filterWord);
@@ -354,20 +340,18 @@
             const row = document.createElement('tr');
             row.className = status === "borrowed" ? "row-borrowed" : (status === "hidden" ? "row-hidden" : "row-available");
             
-            // シリアル番号のマスク表示ロジック
-            // シリアル番号のトグル表示ロジック
-const serialDisplay = (window.isEditingUnlocked) 
-    ? serial 
-    : `<span class="serial-mask" data-serial="${serial}" onclick="
-        if(this.innerText === 'XXXXXXXXXXX') {
-            this.innerText = this.getAttribute('data-serial');
-            this.style.color = '#333';
-        } else {
-            this.innerText = 'XXXXXXXXXXX';
-            this.style.color = '#9e9e9e';
-        }
-        event.stopPropagation();
-      ">XXXXXXXXXXX</span>`;
+            const serialDisplay = (window.isEditingUnlocked) 
+                ? serial 
+                : `<span class="serial-mask" data-serial="${serial}" onclick="
+                    if(this.innerText === 'XXXXXXXXXXX') {
+                        this.innerText = this.getAttribute('data-serial');
+                        this.style.color = '#333';
+                    } else {
+                        this.innerText = 'XXXXXXXXXXX';
+                        this.style.color = '#9e9e9e';
+                    }
+                    event.stopPropagation();
+                  ">XXXXXXXXXXX</span>`;
             
             row.innerHTML = `
                 <td style="text-align:center;"><input type="checkbox" class="row-selector" value="${id}" ${selectedIpadIds.has(id) ? "checked" : ""} onchange="window.handleCheckboxClick(this)"></td>
@@ -392,10 +376,6 @@ const serialDisplay = (window.isEditingUnlocked)
                 <td><select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasCableIncluded', this.value === 'true')">
                     <option value="true" ${hasCable?'selected':''}>有</option>
                     <option value="false" ${!hasCable?'selected':''}>無</option>
-                </select></td>
-                <td><select class="table-select" ${disabledAttr} onchange="window.updateField('${id}', 'hasPencilOut', this.value === 'true')">
-                    <option value="true" ${hasPencilOut?'selected':''}>使用中</option>
-                    <option value="false" ${!hasPencilOut?'selected':''}>なし</option>
                 </select></td>
                 <td>
                     <div class="button-container">
@@ -482,7 +462,7 @@ const serialDisplay = (window.isEditingUnlocked)
                 const ref = doc(db, "ipads", id);
                 const snap = await getDoc(ref);
                 if (snap.exists() && snap.data().status === "borrowed") {
-                    await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
+                    await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "" });
                     
                     const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", id), where("status", "==", "borrowed"));
                     const logSnap = await getDocs(logQuery);
@@ -607,7 +587,6 @@ const serialDisplay = (window.isEditingUnlocked)
                 returnPlanDate: "",
                 isAvailable: true,
                 hasCableIncluded: true,
-                hasPencilOut: false,
                 notes: "" 
             });
             
@@ -626,7 +605,7 @@ const serialDisplay = (window.isEditingUnlocked)
         if (!confirm(`No.${id} を強制的に返却済みにしますか？`)) return;
         try {
             const ref = doc(db, "ipads", id);
-            await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "", hasPencilOut: false });
+            await updateDoc(ref, { status: "available", borrowedByName: "", purpose: "", returnPlanDate: "" });
             const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", id), where("status", "==", "borrowed"));
             const logSnap = await getDocs(logQuery);
             logSnap.forEach((logDoc) => {
