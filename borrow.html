@@ -9,7 +9,6 @@
         :root { --bg: #121212; --card: #1e1e1e; --text: #eaeaea; }
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        /* 💡 修正：パソコンから見る時に画面いっぱいに広がるよう、全体のmax-width制限を解除（または極大化） */
         .container { max-width: 100%; margin: 0 auto; padding: 0 10px; }
         
         h1 { text-align: center; font-size: 1.8rem; margin-bottom: 30px; }
@@ -38,7 +37,6 @@
         .sub-section-title { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; padding-bottom: 5px; }
         .uid-text { font-size: 0.75rem; color: #888; word-break: break-all; font-family: monospace; background: #050505; padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a1a; margin-top: 5px; }
 
-        /* 💡 修正：4個で制限せず、パソコンの大画面なら横幅いっぱいまで「自動で何個でも」回り込んで並びきるフレックス＆グリッド設計 */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; width: 100%; }
         
         .ipad-tile { height: 135px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; padding: 10px; box-sizing: border-box; }
@@ -76,7 +74,6 @@
     <h2>使用しているiPad</h2>
     <div class="grid" id="my-ipad-grid"></div>
 
-    
     <div id="year-sections-container"></div>
 </div>
 
@@ -92,10 +89,6 @@
         <div class="modal-field">
             <label for="borrow-return-plan">返却予定日</label>
             <input type="date" id="borrow-return-plan">
-        </div>
-        <div class="modal-field" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
-            <input type="checkbox" id="borrow-pencil" style="width: auto; margin-top: 0; transform: scale(1.3);">
-            <label for="borrow-pencil" style="cursor: pointer;">Pencilを一緒に使用する</label>
         </div>
         <div class="modal-buttons">
             <button id="modal-cancel-btn" class="cancel-btn">キャンセル</button>
@@ -321,7 +314,6 @@
 
         document.getElementById('borrow-purpose').value = "";
         document.getElementById('borrow-return-plan').value = "";
-        document.getElementById('borrow-pencil').checked = false;
         document.getElementById('borrow-modal').style.display = "flex";
     }
 
@@ -332,7 +324,6 @@
     document.getElementById('modal-submit-btn').onclick = async () => {
         const purpose = document.getElementById('borrow-purpose').value.trim();
         const returnPlan = document.getElementById('borrow-return-plan').value;
-        const includePencil = document.getElementById('borrow-pencil').checked;
 
         if (!purpose) return alert("用途を入力してください。");
         if (!returnPlan) return alert("返却予定日を選択してください。");
@@ -351,8 +342,7 @@
                 borrowedByName: myCustomName,
                 borrowedAt: rentTime,
                 purpose: purpose,
-                returnPlanDate: returnPlan,
-                hasPencilOut: includePencil
+                returnPlanDate: returnPlan
             });
 
             const logId = `ipads_${currentTargetDocId}_${rentTime.getTime()}`;
@@ -368,8 +358,7 @@
                 returnedAt: null,
                 purpose: purpose,
                 returnPlanDate: returnPlan,
-                hasCableIncluded: currentCableStatus, 
-                hasPencilOut: includePencil
+                hasCableIncluded: currentCableStatus
             });
 
             document.getElementById('borrow-modal').style.display = "none";
@@ -387,8 +376,7 @@
                     status: "available", 
                     borrowedByName: "",
                     purpose: "",
-                    returnPlanDate: "",
-                    hasPencilOut: false
+                    returnPlanDate: ""
                 });
 
                 const logQuery = query(collection(db, "logs"), where("category", "==", "ipads"), where("itemId", "==", docId), where("status", "==", "borrowed"));
